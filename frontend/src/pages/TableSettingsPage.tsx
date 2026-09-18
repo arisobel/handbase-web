@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { ApiError, FIELD_TYPES, type FieldType, type TableDetail } from "../api/types";
+import { useAuth } from "../auth/AuthContext";
 import { Empty, ErrorNote, Loading } from "../components/Feedback";
 import Layout from "../components/Layout";
 
@@ -10,6 +11,7 @@ import Layout from "../components/Layout";
 export default function TableSettingsPage() {
   const { t } = useTranslation();
   const { tableId = "" } = useParams();
+  const { can } = useAuth();
   const [table, setTable] = useState<TableDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [label, setLabel] = useState("");
@@ -90,8 +92,13 @@ export default function TableSettingsPage() {
     );
   }
 
+  // Reaching this route directly without the capability shows the structure
+  // read-only; the API would reject every write anyway.
+  const canBuild = can(table.workspace_id, "change_structure");
+
   return (
     <Layout title={table.name} subtitle={t("tableStructure")} backTo={`/tables/${table.id}`}>
+      {canBuild && (
       <section>
         <div className="sectionTitle">
           <h2>{t("addField")}</h2>
@@ -155,6 +162,7 @@ export default function TableSettingsPage() {
 
         {error && <ErrorNote message={error} />}
       </section>
+      )}
 
       <section className="listPanel">
         <h2>{t("fields")}</h2>
@@ -168,9 +176,11 @@ export default function TableSettingsPage() {
                 {field.required ? ` · ${t("required")}` : ""} · <code>{field.key}</code>
               </small>
             </div>
-            <button className="danger" type="button" onClick={() => void removeField(field.id)}>
-              {t("delete")}
-            </button>
+            {canBuild && (
+              <button className="danger" type="button" onClick={() => void removeField(field.id)}>
+                {t("delete")}
+              </button>
+            )}
           </div>
         ))}
       </section>

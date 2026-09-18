@@ -10,7 +10,7 @@ Working-name seed for a mobile-first, multilingual, metadata-driven database app
 - React + TypeScript + Vite frontend.
 - Hebrew/English/Portuguese internationalization.
 - First-class RTL/LTR layout switching.
-- RBAC-ready architecture.
+- Per-workspace roles (owner/admin/editor/viewer).
 - Docker and CapRover deployment from day one.
 - Documentation as operational memory under `docs/`.
 
@@ -18,10 +18,21 @@ Working-name seed for a mobile-first, multilingual, metadata-driven database app
 
 1. Copy `.env.example` to `.env`.
 2. Run `docker compose up --build`.
-3. Open:
+3. Create the first user — nothing exists until you do:
+
+   ```
+   docker compose exec app python -m backend.app.cli create-owner \
+     --email you@example.com --workspace "My Workspace"
+   ```
+
+4. Open:
    - App: http://localhost:8000
    - API health: http://localhost:8000/api/health
+   - Readiness: http://localhost:8000/api/ready
    - Swagger: http://localhost:8000/docs
+
+There is no default account and no seeded password. See
+`docs/04_technical/BOOTSTRAP_OWNER.md`.
 
 ## CapRover
 
@@ -31,12 +42,21 @@ See `docs/04_technical/DEPLOYMENT_CAPROVER.md`.
 
 ## Local development
 
-Backend tests (no PostgreSQL server needed — the suite runs on in-memory SQLite):
+Fast backend tests (no PostgreSQL server needed — in-memory SQLite):
 
 ```
 python -m venv .venv
 .venv/Scripts/pip install -r backend/requirements-dev.txt
 .venv/Scripts/python -m pytest
+```
+
+PostgreSQL integration tests — SQLite is only a test adapter, PostgreSQL is the
+supported database:
+
+```
+docker compose -f docker-compose.test.yml up -d
+.venv/Scripts/python -m pytest -m postgres
+docker compose -f docker-compose.test.yml down -v
 ```
 
 Frontend:
@@ -49,10 +69,11 @@ npm run build   # or: npm run dev
 
 ## Status
 
-The first vertical slice is implemented: workspace → user-defined table →
-field definitions → JSONB records, with create, list, edit and delete working
-end to end in EN/HE/PT-BR and RTL/LTR.
+Implemented end to end in EN/HE/PT-BR and RTL/LTR: workspace → user-defined
+table → field definitions → JSONB records, with create, list, edit and delete;
+plus authentication and per-workspace roles.
 
-Saved views, authentication, RBAC and relations are **not** implemented.
+Saved views, relations, invitations and field-level permissions are **not**
+implemented. Roles are granted with the CLI.
 
 See `docs/02_execution/07_progress.md` for exactly what exists today.

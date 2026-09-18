@@ -3,18 +3,24 @@ import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { TableSummary, Workspace } from "../api/types";
+import { useAuth } from "../auth/AuthContext";
 import { Empty, ErrorNote, Loading } from "../components/Feedback";
 import Layout from "../components/Layout";
 
 export default function WorkspacePage() {
   const { t } = useTranslation();
   const { workspaceId = "" } = useParams();
+  const { can, membershipFor } = useAuth();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [tables, setTables] = useState<TableSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Mirrors the server's CHANGE_STRUCTURE capability; the API enforces it.
+  const canBuild = can(workspaceId, "change_structure");
+  const role = membershipFor(workspaceId)?.role;
 
   useEffect(() => {
     setError(null);
@@ -48,36 +54,48 @@ export default function WorkspacePage() {
   };
 
   return (
-    <Layout title={workspace?.name ?? t("workspace")} subtitle={t("tables")} backTo="/">
+    <Layout
+      title={workspace?.name ?? t("workspace")}
+      subtitle={role ? t(`roles.${role}`) : t("tables")}
+      backTo="/"
+    >
       <section>
-        <div className="sectionTitle">
-          <h2>{t("newTable")}</h2>
-        </div>
+        {canBuild && (
+          <>
+            <div className="sectionTitle">
+              <h2>{t("newTable")}</h2>
+            </div>
 
-        <form className="form" onSubmit={submit}>
-          <div className="formRow">
-            <label htmlFor="table-name">{t("tableName")}</label>
-            <input
-              id="table-name"
-              placeholder={t("tableNamePlaceholder")}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </div>
-          <div className="formRow">
-            <label htmlFor="table-description">{t("tableDescription")}</label>
-            <input
-              id="table-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </div>
-          <div className="formActions">
-            <button className="primary" type="submit" disabled={busy}>
-              {t("createTable")}
-            </button>
-          </div>
-        </form>
+            <form className="form" onSubmit={submit}>
+              <div className="formRow">
+                <label htmlFor="table-name">{t("tableName")}</label>
+                <input
+                  id="table-name"
+                  placeholder={t("tableNamePlaceholder")}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </div>
+              <div className="formRow">
+                <label htmlFor="table-description">{t("tableDescription")}</label>
+                <input
+                  id="table-description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+              </div>
+              <div className="formActions">
+                <button className="primary" type="submit" disabled={busy}>
+                  {t("createTable")}
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+
+        <div className="sectionTitle">
+          <h2>{t("tables")}</h2>
+        </div>
 
         {error && <ErrorNote message={error} />}
         {tables === null && !error && <Loading />}

@@ -2,16 +2,20 @@
 
 > **Status:** Active | **Last updated:** 2026-09-18
 
-## Implemented in seed
+## Implemented
 - Workspace
 - TableDefinition
 - FieldDefinition
 - Record
-- ViewDefinition
+- ViewDefinition (model only; no endpoints yet)
+- User
+- WorkspaceMembership (role: OWNER / ADMIN / EDITOR / VIEWER)
+- RefreshToken
 
 ## Planned
-- User / Membership
-- Role / Permission
+- Invitation
+- Role / Permission as first-class editable entities
+  (today roles are a fixed enum mapped to capabilities in code)
 - RelationDefinition
 - Activity / AuditEvent
 - Task / Follow-up

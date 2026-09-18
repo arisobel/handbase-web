@@ -18,79 +18,128 @@
 - PowerShell tar/deploy helpers.
 - CKJ-inspired documentation tree.
 
-## Implemented — first vertical slice (metadata engine CRUD)
+## Implemented — phase 1, metadata engine CRUD
 
-End-to-end path now working: create workspace → create table → define fields →
-create record → list → edit → delete.
+End-to-end path: create workspace → create table → define fields → create
+record → list → edit → delete.
 
 ### Backend
 
 - Service layer under `backend/app/services/`:
-  - `metadata_service.py` — workspace/table/field operations;
-  - `record_service.py` — record CRUD and payload validation;
-  - `field_types.py` — per-type value rules;
-  - `identifiers.py` — neutral slug/key generation from any-script labels;
-  - `errors.py` — domain errors mapped to HTTP by a handler in `main.py`.
-- Pydantic schemas under `backend/app/schemas/`, separate from the SQLAlchemy models.
-- REST API under `/api/v1/`:
-  - `GET|POST /workspaces`, `GET|PATCH|DELETE /workspaces/{id}`
-  - `GET /tables?workspace_id=`, `POST /tables`, `GET|PATCH|DELETE /tables/{id}`
-    (`GET /tables/{id}` returns the table with its field definitions)
-  - `GET /fields?table_id=`, `POST /fields`, `GET|PATCH|DELETE /fields/{id}`
-  - `GET /field-types` — supported vs planned types
-  - `GET /records?table_id=&limit=&offset=`, `POST /records`,
-    `GET|PUT|PATCH|DELETE /records/{id}`
+  `metadata_service`, `record_service`, `field_types`, `identifiers`, `errors`.
+- Pydantic schemas under `backend/app/schemas/`, separate from the ORM models.
+- REST API under `/api/v1/` for workspaces, tables, fields and records.
 - Record validation against `FieldDefinition`: unknown keys rejected, `required`
-  enforced, values type-checked. Supported types: `text`, `long_text`, `number`,
-  `boolean`, `date`, `single_select`.
-- Validation errors return `{"detail": {"code", "message", "errors": [{field, code, message}]}}`
-  so the UI can place messages next to the right input.
+  enforced, values type-checked, no coercion. Types: `text`, `long_text`,
+  `number`, `boolean`, `date`, `single_select`.
 - Deleting a field removes its key from existing records.
-- Migration `20260918_02` replaces `ix_records_table_id` with the composite
-  `ix_records_table_created (table_id, created_at)` used by the list endpoint.
-- Models use dialect-portable column types that render as native UUID/JSONB on
-  PostgreSQL (see DEC-009).
+- Migration `20260918_02`: composite `ix_records_table_created`.
 
 ### Frontend
 
-- React Router routes: `/`, `/workspaces/:workspaceId`, `/tables/:tableId`,
-  `/tables/:tableId/settings`, `/tables/:tableId/new`, `/records/:recordId`.
-- Typed API client (`src/api/`).
-- Table builder: create a table, then add fields with label, type and required.
-- Record editor: the form is generated entirely from `FieldDefinition` — no
-  domain-specific fields are hard-coded anywhere in the UI.
-- Record list: stacked rows on mobile, table on desktop, from the same markup.
-- Server-side validation messages rendered per field.
-- EN/HE/PT-BR strings for every new screen.
-- Stylesheet contains no physical direction properties; only the two chevron
-  glyphs are direction-aware.
+- React Router routes, typed API client, table builder, metadata-driven record
+  editor, responsive record list, per-field validation messages, EN/HE/PT-BR.
+
+## Implemented — phase 1.5, authentication and authorization
+
+### Identity
+
+- `User` (argon2id password hash, normalized unique email, `preferred_locale`,
+  `is_active`), `WorkspaceMembership` (unique per workspace+user) and
+  `RefreshToken` (SHA-256 digest, expiry, revocation) in `backend/app/models/auth.py`.
+- Migration `20260918_03` — additive; no existing data is touched.
+
+### Authentication
+
+- `POST /api/v1/auth/login`, `POST /auth/refresh`, `POST /auth/logout`,
+  `GET /auth/me`, `PATCH /auth/me`.
+- Short-lived HS256 access token in the response body; opaque refresh token in
+  an `HttpOnly`, `SameSite=Lax` cookie scoped to `/api/v1/auth`, rotated on every
+  refresh (DEC-014). Design and tradeoffs: `04_technical/AUTHENTICATION.md`.
+- Identical response for a wrong password and an unknown address, so login is
+  not an account-enumeration oracle.
+- Startup refuses to run with `APP_ENV=production` and a placeholder
+  `APP_SECRET_KEY`.
+
+### Authorization
+
+- Roles OWNER / ADMIN / EDITOR / VIEWER mapped to four capabilities in one table
+  (`services/authz.ROLE_CAPABILITIES`). Matrix: `04_technical/AUTHORIZATION.md`.
+- Enforced by FastAPI dependencies in `backend/app/api/deps.py`, in front of the
+  services; `metadata_service` and `record_service` contain no permission logic.
+- The owning workspace is always resolved server-side
+  (`record -> table -> workspace`); a client-supplied `workspace_id` is never
+  accepted as proof (DEC-015).
+- Non-members get `404`, insufficient roles get `403`.
+- `GET /workspaces` returns only the caller's workspaces; creating one makes the
+  creator OWNER.
+
+### Bootstrap
+
+- `python -m backend.app.cli` with `create-owner`, `grant`, `adopt-orphans`,
+  `list-workspaces`, `reset-password`. Password is prompted, never a flag.
+- No default account exists anywhere. Procedure: `04_technical/BOOTSTRAP_OWNER.md`.
+- Pre-authentication workspaces are preserved and claimed explicitly (DEC-017).
+
+### Health
+
+- `/api/health` unchanged (liveness).
+- `/api/ready` added: reports the applied vs expected Alembic revision, `503`
+  while behind. Neither endpoint exposes configuration.
+
+### Frontend
+
+- `/login`, session restore through `/auth/refresh` on load, one automatic
+  refresh-and-replay on any `401`, logout, route guard.
+- Workspace selection: one membership enters directly, several show a picker;
+  the list always drives the decision.
+- Role-aware UI — the table builder, record actions and the editor are hidden
+  or read-only per capability. The server enforces the same rules.
+- Account locale: applied from `preferred_locale` on login and written back with
+  `PATCH /auth/me`, so it follows the account rather than one browser.
+- Emails, UUIDs and field keys wrapped in `<bdi dir="ltr">` so they stay legible
+  inside Hebrew layouts.
 
 ### Tests
 
-- `backend/tests/` — 21 pytest cases covering workspace creation, table creation,
-  field creation, valid records, missing required fields, invalid types,
-  undefined fields, edit (PUT and PATCH) and delete.
-- Suite runs on in-memory SQLite; no PostgreSQL server needed.
-- `frontend/src/vite-env.d.ts` added — `npm run build` previously failed on the
-  `styles.css` side-effect import.
+- 67 fast tests (SQLite): the 21 phase-1 tests unchanged, plus authentication,
+  session lifecycle, role capabilities and cross-workspace isolation.
+- 10 PostgreSQL integration tests under `backend/tests/integration/`, marked
+  `postgres` and excluded from the default run:
+  `04_technical`/`03_validation/POSTGRES_INTEGRATION.md`.
 
 ## Not implemented
 
-- Authentication, users, memberships, RBAC.
+- Invitations or a membership-management API — roles are granted with the CLI.
+- Field-level and record-level permissions, custom roles.
+- Rate limiting on `/auth/login`.
+- Password reset by email; self-service registration.
 - Relations between tables.
-- Saved views / filter engine (`view_definitions` exists as a model only).
-- Search.
-- Audit log, tasks, attachments, import/export.
+- Saved views / filter engine (`view_definitions` is still a model only).
+- Search, audit log, tasks, attachments, import/export.
 - Offline/PWA service worker.
-- Field `key` or `field_type` changes after creation.
-- Reordering fields from the UI (`position` is settable via the API only).
+- Field `key` / `field_type` changes after creation (DEC-013).
 
 ## Verification performed on 2026-09-18
 
-- `pytest` — 21 passed.
+Executed, with results:
+
+- `pytest` — 67 passed (SQLite).
+- `pytest -m postgres` — 10 passed against PostgreSQL 17 in Docker, schema built
+  by `alembic upgrade head` from an empty database.
 - `npm run build` — TypeScript and Vite build clean.
-- `alembic upgrade head --sql` — both revisions compile to PostgreSQL DDL.
-- Manual HTTP smoke of `/api/health`, `/api/v1/field-types`, `/api/v1/workspaces`
-  and SPA deep-route serving.
-- The Docker/CapRover stack was **not** exercised: no Docker daemon available on
-  the machine used for this change.
+- `docker compose build` and `docker compose up` — stack healthy; migrations
+  `20260918_01 → 02 → 03` applied on container start; `/api/health` 200;
+  `/api/ready` 200 `"ready"`; SPA served.
+- In the running container: bootstrap owner created via CLI, login, refresh
+  cookie issued with `HttpOnly`/`Path=/api/v1/auth`, `/auth/me`, refresh,
+  authenticated CRUD, VIEWER blocked from writing (403), non-member blocked from
+  a record id (404), Hebrew round-trip through JSONB intact.
+
+Not executed:
+
+- CapRover itself. The image, `captain-definition` and start command were
+  reviewed and the stack was exercised locally, but no deploy to a CapRover
+  server took place.
+- The frontend was verified only by TypeScript build and by driving the same API
+  it calls; no browser session or RTL screenshot was captured.

@@ -4,39 +4,56 @@
 
 Base path: `/api/v1`. Interactive reference: `/docs`.
 
-No authentication exists yet. Every endpoint is open; do not expose an instance
-publicly until auth lands.
+**Every endpoint below requires a bearer access token** and membership in the
+workspace that owns the object being touched. See
+[AUTHENTICATION.md](AUTHENTICATION.md) for how to obtain a token and
+[AUTHORIZATION.md](AUTHORIZATION.md) for which role may do what.
+
+The capability each endpoint needs is listed in its table. A caller who is not a
+member of the resolved workspace gets `404`, not `403`.
+
+## Auth
+
+See [AUTHENTICATION.md](AUTHENTICATION.md).
+
+| Method | Path | Requires |
+|---|---|---|
+| `POST` | `/auth/login` | — |
+| `POST` | `/auth/refresh` | refresh cookie |
+| `POST` | `/auth/logout` | — |
+| `GET` | `/auth/me` | bearer |
+| `PATCH` | `/auth/me` | bearer |
 
 ## Workspaces
 
-| Method | Path | Notes |
-|---|---|---|
-| `GET` | `/workspaces` | |
-| `POST` | `/workspaces` | `{name, default_locale?}` |
-| `GET` | `/workspaces/{id}` | |
-| `PATCH` | `/workspaces/{id}` | |
-| `DELETE` | `/workspaces/{id}` | Cascades to tables, fields and records |
+| Method | Path | Requires | Notes |
+|---|---|---|---|
+| `GET` | `/workspaces` | bearer | Only the caller's own workspaces |
+| `POST` | `/workspaces` | bearer | `{name, default_locale?}`; the creator becomes OWNER |
+| `GET` | `/workspaces/{id}` | `read` | |
+| `PATCH` | `/workspaces/{id}` | `manage_workspace` | OWNER only |
+| `DELETE` | `/workspaces/{id}` | `manage_workspace` | OWNER only; cascades to tables, fields and records |
 
 ## Tables
 
-| Method | Path | Notes |
-|---|---|---|
-| `GET` | `/tables?workspace_id=` | |
-| `POST` | `/tables` | `{workspace_id, name, description?, icon?}` |
-| `GET` | `/tables/{id}` | Returns the table **with its `fields`** |
-| `PATCH` | `/tables/{id}` | The `slug` is stable and does not follow a rename |
-| `DELETE` | `/tables/{id}` | |
+| Method | Path | Requires | Notes |
+|---|---|---|---|
+| `GET` | `/tables?workspace_id=` | `read` | |
+| `POST` | `/tables` | `change_structure` | `{workspace_id, name, description?, icon?}` |
+| `GET` | `/tables/{id}` | `read` | Returns the table **with its `fields`** |
+| `PATCH` | `/tables/{id}` | `change_structure` | The `slug` is stable and does not follow a rename |
+| `DELETE` | `/tables/{id}` | `change_structure` | |
 
 ## Fields
 
-| Method | Path | Notes |
-|---|---|---|
-| `GET` | `/field-types` | `{supported, planned}` |
-| `GET` | `/fields?table_id=` | Ordered by `position` |
-| `POST` | `/fields` | `{table_id, label, field_type, required?, key?, position?, config?}` |
-| `GET` | `/fields/{id}` | |
-| `PATCH` | `/fields/{id}` | `label`, `required`, `position`, `config` only |
-| `DELETE` | `/fields/{id}` | Also removes the key from existing records |
+| Method | Path | Requires | Notes |
+|---|---|---|---|
+| `GET` | `/field-types` | bearer | `{supported, planned}` |
+| `GET` | `/fields?table_id=` | `read` | Ordered by `position` |
+| `POST` | `/fields` | `change_structure` | `{table_id, label, field_type, required?, key?, position?, config?}` |
+| `GET` | `/fields/{id}` | `read` | |
+| `PATCH` | `/fields/{id}` | `change_structure` | `label`, `required`, `position`, `config` only |
+| `DELETE` | `/fields/{id}` | `change_structure` | Also removes the key from existing records |
 
 `key` is optional: omit it and a neutral identifier is derived from the label
 (`First name` → `first_name`; `שם פרטי` → `field_1`). See DEC-011.
@@ -46,14 +63,14 @@ publicly until auth lands.
 
 ## Records
 
-| Method | Path | Notes |
-|---|---|---|
-| `GET` | `/records?table_id=&limit=&offset=` | `{items, total, limit, offset}`, newest first |
-| `POST` | `/records` | `{table_id, data}` |
-| `GET` | `/records/{id}` | |
-| `PUT` | `/records/{id}` | Full replacement of `data` |
-| `PATCH` | `/records/{id}` | Merges `data`, then validates the result |
-| `DELETE` | `/records/{id}` | |
+| Method | Path | Requires | Notes |
+|---|---|---|---|
+| `GET` | `/records?table_id=&limit=&offset=` | `read` | `{items, total, limit, offset}`, newest first |
+| `POST` | `/records` | `write_records` | `{table_id, data}` |
+| `GET` | `/records/{id}` | `read` | |
+| `PUT` | `/records/{id}` | `write_records` | Full replacement of `data` |
+| `PATCH` | `/records/{id}` | `write_records` | Merges `data`, then validates the result |
+| `DELETE` | `/records/{id}` | `write_records` | |
 
 ## Record validation
 
@@ -91,5 +108,16 @@ Domain errors use a single envelope:
 `errors[].field` is the field **key**, so a client can place each message next to
 the matching input; `message` names the user-facing **label**.
 
-Statuses: `404 not_found`, `409 conflict`, `422 validation_error`. Request-shape
-errors (bad UUID, missing body key) still use FastAPI's own 422 format.
+Statuses: `401 unauthenticated`, `403 forbidden`, `404 not_found`,
+`409 conflict`, `422 validation_error`. Request-shape errors (bad UUID, missing
+body key) still use FastAPI's own 422 format.
+
+## Health
+
+| Method | Path | Requires | Notes |
+|---|---|---|---|
+| `GET` | `/api/health` | — | Liveness; process up and database answering |
+| `GET` | `/api/ready` | — | Readiness; `503` while the schema is behind the build's head |
+
+Both are outside `/api/v1` and deliberately unauthenticated — a load balancer
+has no credentials. Neither returns configuration or secrets.

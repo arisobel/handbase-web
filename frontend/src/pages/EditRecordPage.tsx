@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { ApiError, type FieldValue, type RecordRow, type TableDetail } from "../api/types";
+import { useAuth } from "../auth/AuthContext";
 import { ErrorNote, Loading } from "../components/Feedback";
+import RecordView from "../components/RecordView";
 import Layout from "../components/Layout";
 import RecordForm from "../components/RecordForm";
 
@@ -11,6 +13,7 @@ export default function EditRecordPage() {
   const { t } = useTranslation();
   const { recordId = "" } = useParams();
   const navigate = useNavigate();
+  const { can } = useAuth();
   const [record, setRecord] = useState<RecordRow | null>(null);
   const [table, setTable] = useState<TableDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,13 +59,16 @@ export default function EditRecordPage() {
     }
   };
 
+  const canWrite = table ? can(table.workspace_id, "write_records") : false;
+
   return (
     <Layout
       title={table?.name ?? t("editRecord")}
-      subtitle={t("editRecord")}
+      subtitle={canWrite ? t("editRecord") : t("viewRecord")}
       backTo={record ? `/tables/${record.table_id}` : "/"}
       actions={
-        record && (
+        record &&
+        canWrite && (
           <button className="danger" type="button" onClick={() => void remove()}>
             {t("delete")}
           </button>
@@ -71,7 +77,7 @@ export default function EditRecordPage() {
     >
       {error && <ErrorNote message={error} />}
       {(record === null || table === null) && !error && <Loading />}
-      {record && table && (
+      {record && table && canWrite && (
         <RecordForm
           key={record.id}
           fields={table.fields}
@@ -82,6 +88,9 @@ export default function EditRecordPage() {
           onSubmit={submit}
           onCancel={() => navigate(`/tables/${record.table_id}`)}
         />
+      )}
+      {record && table && !canWrite && (
+        <RecordView fields={table.fields} data={record.data} />
       )}
     </Layout>
   );

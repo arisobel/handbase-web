@@ -1,0 +1,25 @@
+# Throwaway PostgreSQL for the integration suite.
+#
+#   docker compose -f docker-compose.test.yml up -d
+#   pytest -m postgres
+#   docker compose -f docker-compose.test.yml down -v
+#
+# Deliberately separate from docker-compose.yml: it publishes a port to the
+# host, uses no named volume, and its database is dropped and rebuilt by the
+# test fixtures. Never point TEST_DATABASE_URL at anything you care about.
+services:
+  db-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: handbase_test
+      POSTGRES_USER: handbase
+      POSTGRES_PASSWORD: handbase
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U handbase -d handbase_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 20

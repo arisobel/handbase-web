@@ -1,20 +1,26 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import RequireAuth from "./auth/RequireAuth";
 import DashboardPage from "./pages/DashboardPage";
 import EditRecordPage from "./pages/EditRecordPage";
+import LoginPage from "./pages/LoginPage";
 import NewRecordPage from "./pages/NewRecordPage";
 import TableRecordsPage from "./pages/TableRecordsPage";
 import TableSettingsPage from "./pages/TableSettingsPage";
 import WorkspacePage from "./pages/WorkspacePage";
 
+/** Everything except `/login` sits behind a session; the API enforces it too. */
+const guarded = (element: React.ReactElement) => <RequireAuth>{element}</RequireAuth>;
+
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<DashboardPage />} />
-      <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
-      <Route path="/tables/:tableId" element={<TableRecordsPage />} />
-      <Route path="/tables/:tableId/settings" element={<TableSettingsPage />} />
-      <Route path="/tables/:tableId/new" element={<NewRecordPage />} />
-      <Route path="/records/:recordId" element={<EditRecordPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={guarded(<DashboardPage />)} />
+      <Route path="/workspaces/:workspaceId" element={guarded(<WorkspacePage />)} />
+      <Route path="/tables/:tableId" element={guarded(<TableRecordsPage />)} />
+      <Route path="/tables/:tableId/settings" element={guarded(<TableSettingsPage />)} />
+      <Route path="/tables/:tableId/new" element={guarded(<NewRecordPage />)} />
+      <Route path="/records/:recordId" element={guarded(<EditRecordPage />)} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

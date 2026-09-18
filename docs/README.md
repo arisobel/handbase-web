@@ -21,6 +21,10 @@ This tree is the operational memory of the project. It separates product definit
 
 - Current progress: `02_execution/07_progress.md`
 - API reference: `04_technical/API_V1.md`
+- Authentication: `04_technical/AUTHENTICATION.md`
+- Authorization: `04_technical/AUTHORIZATION.md`
+- First user: `04_technical/BOOTSTRAP_OWNER.md`
+- PostgreSQL integration tests: `03_validation/POSTGRES_INTEGRATION.md`
 - Decisions: `02_execution/08_decisions_log.md`
 - Backlog: `02_execution/09_backlog.md`
 - Deployment: `04_technical/DEPLOYMENT_CAPROVER.md`

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { RecordRow, TableDetail } from "../api/types";
+import { useAuth } from "../auth/AuthContext";
 import { Empty, ErrorNote, Loading } from "../components/Feedback";
 import Layout from "../components/Layout";
 import RecordList from "../components/RecordList";
@@ -10,6 +11,7 @@ import RecordList from "../components/RecordList";
 export default function TableRecordsPage() {
   const { t } = useTranslation();
   const { tableId = "" } = useParams();
+  const { can } = useAuth();
   const [table, setTable] = useState<TableDetail | null>(null);
   const [records, setRecords] = useState<RecordRow[] | null>(null);
   const [total, setTotal] = useState(0);
@@ -26,14 +28,19 @@ export default function TableRecordsPage() {
       .catch((err: Error) => setError(err.message));
   }, [tableId]);
 
+  // The API rejects these anyway; hiding them keeps the UI honest about the role.
   const actions = table && (
     <>
-      <Link className="primary buttonLink" to={`/tables/${table.id}/new`}>
-        {t("newRecord")}
-      </Link>
-      <Link className="secondary buttonLink" to={`/tables/${table.id}/settings`}>
-        {t("tableStructure")}
-      </Link>
+      {can(table.workspace_id, "write_records") && (
+        <Link className="primary buttonLink" to={`/tables/${table.id}/new`}>
+          {t("newRecord")}
+        </Link>
+      )}
+      {can(table.workspace_id, "change_structure") && (
+        <Link className="secondary buttonLink" to={`/tables/${table.id}/settings`}>
+          {t("tableStructure")}
+        </Link>
+      )}
     </>
   );
 
@@ -52,7 +59,11 @@ export default function TableRecordsPage() {
         <Empty message={t("noRecordsYet")} />
       )}
       {table && records && records.length > 0 && (
-        <RecordList fields={table.fields} records={records} />
+        <RecordList
+          fields={table.fields}
+          records={records}
+          canEdit={can(table.workspace_id, "write_records")}
+        />
       )}
     </Layout>
   );

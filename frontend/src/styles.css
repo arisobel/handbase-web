@@ -53,7 +53,8 @@ p { margin: 0; color: #607080; }
 
 /* --------------------------------------------------------------- controls -- */
 
-select, input[type="text"], input[type="date"], input:not([type]), textarea {
+select, input[type="text"], input[type="date"], input[type="email"],
+input[type="password"], input:not([type]), textarea {
   width: 100%;
   border: 1px solid #d7dee6;
   background: #fff;
@@ -139,7 +140,11 @@ button:disabled { opacity: .6; cursor: progress; }
 }
 .card strong, .card small, .listItem strong, .listItem small { display: block; }
 small { color: #768696; margin-block-start: 4px; }
-code { font-size: 12px; background: #eef2f6; border-radius: 4px; padding: 1px 5px; }
+code {
+  font-size: 12px; background: #eef2f6; border-radius: 4px; padding: 1px 5px;
+  /* Field keys stay LTR inside a Hebrew line. */
+  direction: ltr; unicode-bidi: isolate;
+}
 
 .listPanel { margin-block-start: 24px; padding: 16px; }
 .listPanel h2 { margin-block-end: 8px; }
@@ -207,3 +212,89 @@ code { font-size: 12px; background: #eef2f6; border-radius: 4px; padding: 1px 5p
   .topbar { gap: 10px; }
   .topbar p { display: none; }
 }
+
+/* ------------------------------------------------------- bidi isolation -- */
+
+/*
+ * Emails, UUIDs and field keys read left-to-right in every locale. `isolate`
+ * keeps the surrounding Hebrew sentence from dragging trailing punctuation to
+ * the wrong end; `text-align: start` then resolves to the run's own direction,
+ * not the page's.
+ */
+.technical {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+}
+input.technical { text-align: start; }
+
+/* --------------------------------------------------------------- account -- */
+
+.topbarAside {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+.account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.accountEmail {
+  color: #607080;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.linkButton {
+  background: transparent;
+  border: 0;
+  color: #275f8d;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* ----------------------------------------------------------------- login -- */
+
+.loginShell {
+  display: grid;
+  place-items: center;
+  padding-block: 40px;
+}
+.loginCard {
+  width: min(100%, 420px);
+  background: #fff;
+  border: 1px solid #e1e6eb;
+  border-radius: 16px;
+  padding: 24px;
+}
+.loginHeader { margin-block-end: 20px; }
+.loginHeader h1 { margin-block: 0 4px; }
+.loginFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-block-start: 22px;
+  padding-block-start: 16px;
+  border-block-start: 1px solid #edf0f3;
+  font-size: 13px;
+}
+.loginFooter select { width: auto; }
+.loginCard input[type="password"], .loginCard input[type="email"] { width: 100%; }
+
+/* ------------------------------------------------------ read-only record -- */
+
+.readOnlyRecord {
+  margin: 0;
+  background: #fff;
+  border: 1px solid #e1e6eb;
+  border-radius: 16px;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+.readOnlyRecord dt { font-size: 13px; color: #4a5a6a; }
+.readOnlyRecord dd { margin: 0; }

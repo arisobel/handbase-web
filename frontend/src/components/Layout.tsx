@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
-import i18n, { applyDocumentDirection } from "../i18n";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
+import i18n from "../i18n";
+import Technical from "./Technical";
 
 interface LayoutProps {
   title: string;
@@ -14,11 +16,12 @@ interface LayoutProps {
 
 export default function Layout({ title, subtitle, backTo, actions, children }: LayoutProps) {
   const { t } = useTranslation();
+  const { session, logout, setLocale } = useAuth();
+  const navigate = useNavigate();
 
-  const changeLanguage = async (locale: string) => {
-    await i18n.changeLanguage(locale);
-    localStorage.setItem("locale", locale);
-    applyDocumentDirection(locale);
+  const signOut = async () => {
+    await logout();
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -34,15 +37,28 @@ export default function Layout({ title, subtitle, backTo, actions, children }: L
           <h1>{title}</h1>
           {subtitle && <p>{subtitle}</p>}
         </div>
-        <select
-          aria-label={t("language")}
-          value={i18n.language}
-          onChange={(event) => void changeLanguage(event.target.value)}
-        >
-          <option value="en">English</option>
-          <option value="he">עברית</option>
-          <option value="pt-BR">Português</option>
-        </select>
+
+        <div className="topbarAside">
+          <select
+            aria-label={t("language")}
+            value={i18n.language}
+            onChange={(event) => void setLocale(event.target.value)}
+          >
+            <option value="en">English</option>
+            <option value="he">עברית</option>
+            <option value="pt-BR">Português</option>
+          </select>
+
+          {session && (
+            <div className="account">
+              {/* The address is LTR even inside a Hebrew layout. */}
+              <Technical className="accountEmail">{session.user.email}</Technical>
+              <button type="button" className="linkButton" onClick={() => void signOut()}>
+                {t("signOut")}
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       {actions && <div className="actionRow">{actions}</div>}

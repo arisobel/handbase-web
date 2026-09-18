@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -11,12 +12,27 @@ from backend.app.api.v1 import api_router
 from backend.app.core.config import get_settings
 from backend.app.services.errors import DomainError
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# Tokens and the refresh cookie are signed with APP_SECRET_KEY. Booting
+# production with the shipped placeholder would make every session forgeable, so
+# refuse to start rather than run insecurely.
+if settings.is_production and settings.secret_key_is_insecure():
+    raise RuntimeError(
+        "APP_SECRET_KEY is unset or still the placeholder value. "
+        "Set a long random secret before running with APP_ENV=production."
+    )
+if settings.secret_key_is_insecure():
+    logger.warning("APP_SECRET_KEY is a placeholder. Acceptable for local development only.")
+
 app = FastAPI(title=settings.app_name)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    # Required for the refresh-token cookie to travel on cross-origin calls
+    # during local development (Vite on :5173 -> API on :8000).
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,7 +42,10 @@ app.add_middleware(
 @app.exception_handler(DomainError)
 def handle_domain_error(request: Request, exc: DomainError) -> JSONResponse:
     """Map service-layer errors to HTTP so routers stay free of try/except."""
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.to_payload()})
+    headers = {"WWW-Authenticate": "Bearer"} if exc.status_code == 401 else None
+    return JSONResponse(
+        status_code=exc.status_code, content={"detail": exc.to_payload()}, headers=headers
+    )
 
 
 app.include_router(health_router, prefix="/api")

@@ -22,6 +22,39 @@ export interface FieldConfig {
   options?: (string | SelectOption)[];
 }
 
+/** Capability names returned by the API; mirrors `services/authz.Capability`. */
+export type Capability = "read" | "write_records" | "change_structure" | "manage_workspace";
+
+export type WorkspaceRole = "OWNER" | "ADMIN" | "EDITOR" | "VIEWER";
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  display_name: string;
+  preferred_locale: string;
+  is_active: boolean;
+}
+
+export interface Membership {
+  workspace_id: string;
+  workspace_name: string;
+  role: WorkspaceRole;
+  capabilities: Capability[];
+}
+
+/** What `/auth/me` returns: who you are and where you belong. */
+export interface Identity {
+  user: AuthUser;
+  memberships: Membership[];
+}
+
+/** What `/auth/login` and `/auth/refresh` return: an identity plus a token. */
+export interface Session extends Identity {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
 export interface Workspace {
   id: string;
   name: string;

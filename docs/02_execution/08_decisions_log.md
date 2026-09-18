@@ -31,3 +31,30 @@
 - **DEC-013** `field_definitions.key` and `field_type` are immutable after
   creation. Changing either would require rewriting every stored record payload,
   which belongs in a dedicated schema-change feature rather than in a PATCH.
+- **DEC-014** Split token model: a short-lived HS256 JWT access token held only
+  in browser memory, plus an opaque refresh token in an `HttpOnly`, `SameSite=Lax`
+  cookie scoped to `/api/v1/auth`, rotated on every use and stored as a SHA-256
+  digest in `refresh_tokens`. The long-lived credential is therefore the one XSS
+  cannot read, and the revocable one is the one that lives in the database.
+  Accepted tradeoffs (no CSRF token, no rotation-reuse alarm, no login rate
+  limiting) are written down in `04_technical/AUTHENTICATION.md`.
+- **DEC-015** Authorization is resolved server-side from the object being
+  touched (`record -> table -> workspace`), never from a `workspace_id` supplied
+  by the client, and lives in FastAPI dependencies in front of the services so
+  `metadata_service`/`record_service` stay free of permission logic (DEC-010).
+  A caller who is not a member gets `404` rather than `403`, because `403` would
+  confirm that an id exists in somebody else's workspace.
+- **DEC-016** The container start command keeps `alembic upgrade head && uvicorn`.
+  It matches the single-instance CapRover deployment this app has, and
+  PostgreSQL's transactional DDL means a failed migration rolls back and the
+  container fails to start rather than serving a half-migrated schema. Revisit
+  before running more than one replica: concurrent starts race. `/api/ready`
+  exists as the readiness signal.
+- **DEC-017** Workspaces that predate authentication are left intact and become
+  unreachable until an operator claims them with
+  `python -m backend.app.cli adopt-orphans`. Ownership is not inferred by a
+  migration: no migration can know who should own data created before there were
+  users, and guessing would be worse than an explicit step.
+- **DEC-018** Passwords use argon2id via `argon2-cffi` at library defaults, with
+  `check_needs_rehash` on every login so parameters can be raised later without a
+  reset. No cryptographic primitive is implemented in this repository.

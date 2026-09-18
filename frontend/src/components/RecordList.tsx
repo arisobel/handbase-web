@@ -28,6 +28,8 @@ export function formatValue(
 interface RecordListProps {
   fields: FieldDefinition[];
   records: RecordRow[];
+  /** When false the row links to a read-only view instead of the editor. */
+  canEdit?: boolean;
 }
 
 /**
@@ -35,7 +37,7 @@ interface RecordListProps {
  * on narrow ones (see `.recordTable` in styles.css). Values are read from the
  * field definitions, so the list never hard-codes a domain column.
  */
-export default function RecordList({ fields, records }: RecordListProps) {
+export default function RecordList({ fields, records, canEdit = true }: RecordListProps) {
   const { t } = useTranslation();
   const columns = fields.slice(0, MAX_COLUMNS);
   const yes = t("yes");
@@ -61,7 +63,7 @@ export default function RecordList({ fields, records }: RecordListProps) {
                 </td>
               ))}
               <td className="actionsCell">
-                <Link to={`/records/${record.id}`}>{t("edit")}</Link>
+                <Link to={`/records/${record.id}`}>{canEdit ? t("edit") : t("open")}</Link>
               </td>
             </tr>
           ))}

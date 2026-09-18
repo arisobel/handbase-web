@@ -1,3 +1,11 @@
+from backend.app.schemas.auth import (
+    LoginRequest,
+    MembershipRead,
+    MeRead,
+    ProfileUpdate,
+    SessionRead,
+    UserRead,
+)
 from backend.app.schemas.field import FieldCreate, FieldRead, FieldTypeCatalog, FieldUpdate
 from backend.app.schemas.record import RecordCreate, RecordPage, RecordRead, RecordWrite
 from backend.app.schemas.table import TableCreate, TableDetail, TableRead, TableUpdate
@@ -8,14 +16,20 @@ __all__ = [
     "FieldRead",
     "FieldTypeCatalog",
     "FieldUpdate",
+    "LoginRequest",
+    "MeRead",
+    "MembershipRead",
+    "ProfileUpdate",
     "RecordCreate",
     "RecordPage",
     "RecordRead",
     "RecordWrite",
+    "SessionRead",
     "TableCreate",
     "TableDetail",
     "TableRead",
     "TableUpdate",
+    "UserRead",
     "WorkspaceCreate",
     "WorkspaceRead",
     "WorkspaceUpdate",
