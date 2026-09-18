@@ -36,7 +36,17 @@ There is no default account and no seeded password. See
 
 ## CapRover
 
-Includes `captain-definition`, a production `Dockerfile`, and PowerShell scripts under `scripts/`.
+One CapRover application: the image builds React and serves it from FastAPI.
+
+```powershell
+Copy-Item deploy\.env.example deploy\.env   # CAPROVER_URL / APP / APP_TOKEN
+.\deploy\deploy.ps1                         # test -> build -> package -> inspect -> deploy
+.\deploy\deploy.ps1 -SkipDeploy             # prepare and review a package only
+```
+
+Deploy-time credentials live in `deploy/.env` (gitignored). Runtime settings —
+`APP_SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS` — belong in the CapRover app's
+environment and never enter the package.
 
 See `docs/04_technical/DEPLOYMENT_CAPROVER.md`.
 

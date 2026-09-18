@@ -58,3 +58,11 @@
 - **DEC-018** Passwords use argon2id via `argon2-cffi` at library defaults, with
   `check_needs_rehash` on every login so parameters can be raised later without a
   reset. No cryptographic primitive is implemented in this repository.
+- **DEC-019** CapRover deployment packages use application-scoped tokens and
+  validated, timestamped tarballs; deployment credentials are distinct from
+  application runtime secrets. `deploy/deploy.ps1` is the single entry point
+  (one app, one script), it refuses any key in `deploy/.env` outside
+  `CAPROVER_URL` / `CAPROVER_APP` / `CAPROVER_APP_TOKEN`, and it audits the
+  finished archive against a forbidden list independent of the one used to build
+  it — deleting any package that fails. Tests and the frontend build run before
+  packaging, so no unverified artifact can reach the server.

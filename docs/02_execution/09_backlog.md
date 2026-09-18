@@ -14,12 +14,15 @@
 - PostgreSQL integration test path (`pytest -m postgres`).
 - Bootstrap-owner CLI and orphan-workspace adoption.
 - Docker Compose stack validated end to end.
+- Hardened CapRover packaging: single validated deploy script, app-scoped token,
+  timestamped and audited tarballs (DEC-019).
 
 See `07_progress.md` for exactly what each of these covers.
 
 ## P0
 
-- Validate a real CapRover deploy — the only item from phase 1.5 still unproven.
+- Validate a real CapRover deploy. The packaging path is now proven locally
+  (the tarball builds a working image); the remaining unknown is the server.
 - Rate limiting / lockout on `/api/v1/auth/login`.
 - Membership management over the API: invite a user, change a role, remove a
   member. Today this is CLI-only.

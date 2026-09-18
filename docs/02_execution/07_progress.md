@@ -15,7 +15,7 @@
 - Docker Compose PostgreSQL.
 - CapRover `captain-definition`.
 - Multi-stage Dockerfile.
-- PowerShell tar/deploy helpers.
+- PowerShell tar/deploy helpers (superseded by `deploy/` - see deploy hardening below).
 - CKJ-inspired documentation tree.
 
 ## Implemented — phase 1, metadata engine CRUD
@@ -108,6 +108,28 @@ record → list → edit → delete.
   `postgres` and excluded from the default run:
   `04_technical`/`03_validation/POSTGRES_INTEGRATION.md`.
 
+## Implemented - deploy hardening
+
+- `deploy/deploy.ps1` replaces `scripts/build-tar.ps1` and
+  `scripts/deploy-caprover.ps1`, which were removed. One script, because the app
+  is one CapRover image.
+- Fixed order, each step fatal: load config -> validate layout -> `pytest` ->
+  `npm run build` -> package -> audit archive -> deploy.
+- `deploy/.env` (gitignored) holds only `CAPROVER_URL`, `CAPROVER_APP` and
+  `CAPROVER_APP_TOKEN`; any other key is a hard error. Every key falls back to
+  the environment. `deploy/.env.example` is committed.
+- App-scoped deploy token instead of the CapRover account password; exported
+  only for the duration of the CLI call and restored afterwards, never printed.
+- Timestamped packages `dist/handbase-web_YYYYMMDD_HHmmss.tar`; the five most
+  recent are kept and older ones deleted.
+- Archive contents limited to what the Docker build reads; the finished archive
+  is read back with `tar -tf` and audited against a forbidden list. A package
+  that fails inspection, or that is missing a file CapRover needs, is deleted.
+- `-SkipDeploy` (package and inspect only) and `-SkipTests` (explicit, warns).
+- `.dockerignore` tightened: tests, docs, compose files, secrets and build
+  output are out of the image context.
+- See DEC-019 and `04_technical/DEPLOYMENT_CAPROVER.md`.
+
 ## Not implemented
 
 - Invitations or a membership-management API — roles are granted with the CLI.
@@ -136,10 +158,24 @@ Executed, with results:
   authenticated CRUD, VIEWER blocked from writing (403), non-member blocked from
   a record id (404), Hebrew round-trip through JSONB intact.
 
+Deploy tooling, verified on 2026-09-18:
+
+- `deploy/deploy.ps1 -SkipDeploy` - full flow green: 67 tests, frontend build,
+  package `dist/handbase-web_20260918_110250.tar` (0.28 MB, 76 files), archive
+  audit clean, retention applied.
+- The extracted package alone builds the production image
+  (`docker build` from a clean directory), and the resulting image contains the
+  compiled frontend and no test code.
+- Failure paths exercised: runtime secrets in `deploy/.env` rejected by name;
+  missing/incomplete deploy config stops before any work; with the tar excludes
+  deliberately disabled the auditor caught an 80.78 MB archive containing
+  `node_modules` and `__pycache__` and deleted it; retention trimmed 7 packages
+  to 5.
+
 Not executed:
 
-- CapRover itself. The image, `captain-definition` and start command were
-  reviewed and the stack was exercised locally, but no deploy to a CapRover
-  server took place.
+- CapRover itself. The image, `captain-definition`, start command and packaging
+  were exercised locally, but no deploy to a CapRover server took place - no
+  server or app token was available, and none was requested.
 - The frontend was verified only by TypeScript build and by driving the same API
   it calls; no browser session or RTL screenshot was captured.
