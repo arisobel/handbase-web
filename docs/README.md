@@ -20,6 +20,7 @@ This tree is the operational memory of the project. It separates product definit
 ## Sources of truth
 
 - Current progress: `02_execution/07_progress.md`
+- API reference: `04_technical/API_V1.md`
 - Decisions: `02_execution/08_decisions_log.md`
 - Backlog: `02_execution/09_backlog.md`
 - Deployment: `04_technical/DEPLOYMENT_CAPROVER.md`

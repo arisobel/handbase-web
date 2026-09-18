@@ -12,7 +12,8 @@
     "i18next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "react-i18next": "latest"
+    "react-i18next": "latest",
+    "react-router-dom": "latest"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "latest",

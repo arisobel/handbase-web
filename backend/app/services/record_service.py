@@ -60,7 +60,7 @@ def validate_payload(fields: list[FieldDefinition], payload: dict) -> dict:
                 )
             continue
 
-        normalized, issue = coerce_value(key, field.field_type, field.config, value)
+        normalized, issue = coerce_value(key, field.label, field.field_type, field.config, value)
         if issue is not None:
             issues.append(issue)
         else:

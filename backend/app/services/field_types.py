@@ -67,8 +67,11 @@ def is_empty(value: object) -> bool:
     return False
 
 
-def coerce_value(key: str, field_type: str, config: dict | None, value: object):
+def coerce_value(key: str, label: str, field_type: str, config: dict | None, value: object):
     """Validate and normalize one value.
+
+    ``key`` identifies the field for the client; ``label`` is what the message
+    shows, so a Hebrew-labelled field reports a Hebrew-readable error.
 
     Returns ``(normalized_value, issue)``; exactly one of the two is meaningful.
     Types are strict on purpose — silent coercion in a schemaless JSONB column
@@ -76,51 +79,52 @@ def coerce_value(key: str, field_type: str, config: dict | None, value: object):
     """
     if field_type in (TEXT, LONG_TEXT):
         if not isinstance(value, str):
-            return None, _type_issue(key, field_type, "a string")
+            return None, _type_issue(key, label, field_type, "a string")
         return value, None
 
     if field_type == NUMBER:
         # bool is a subclass of int in Python; it is not a number here.
         if isinstance(value, bool) or not isinstance(value, (int, float)):
-            return None, _type_issue(key, field_type, "a number")
+            return None, _type_issue(key, label, field_type, "a number")
         return value, None
 
     if field_type == BOOLEAN:
         if not isinstance(value, bool):
-            return None, _type_issue(key, field_type, "a boolean")
+            return None, _type_issue(key, label, field_type, "a boolean")
         return value, None
 
     if field_type == DATE:
         if not isinstance(value, str):
-            return None, _type_issue(key, field_type, "an ISO date string (YYYY-MM-DD)")
+            return None, _type_issue(key, label, field_type, "an ISO date string (YYYY-MM-DD)")
         try:
             parsed = date.fromisoformat(value)
         except ValueError:
-            return None, _type_issue(key, field_type, "an ISO date string (YYYY-MM-DD)")
+            return None, _type_issue(key, label, field_type, "an ISO date string (YYYY-MM-DD)")
         return parsed.isoformat(), None
 
     if field_type == SINGLE_SELECT:
         if not isinstance(value, str):
-            return None, _type_issue(key, field_type, "one of the configured options")
+            return None, _type_issue(key, label, field_type, "one of the configured options")
         options = select_options(config)
         if value not in options:
+            allowed = ", ".join(options) or "(no options configured)"
             return None, ValidationIssue(
                 field=key,
                 code="invalid_option",
-                message=f"Field '{key}' must be one of: {', '.join(options) or '(no options configured)'}.",
+                message=f"Field '{label}' must be one of: {allowed}.",
             )
         return value, None
 
     return None, ValidationIssue(
         field=key,
         code="unsupported_type",
-        message=f"Field type '{field_type}' is not supported yet.",
+        message=f"Field '{label}' uses type '{field_type}', which is not supported yet.",
     )
 
 
-def _type_issue(key: str, field_type: str, expectation: str) -> ValidationIssue:
+def _type_issue(key: str, label: str, field_type: str, expectation: str) -> ValidationIssue:
     return ValidationIssue(
         field=key,
         code="invalid_type",
-        message=f"Field '{key}' of type '{field_type}' expects {expectation}.",
+        message=f"Field '{label}' of type '{field_type}' expects {expectation}.",
     )

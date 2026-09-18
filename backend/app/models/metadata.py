@@ -71,7 +71,12 @@ class FieldDefinition(Base):
 
 class Record(Base):
     __tablename__ = "records"
-    __table_args__ = (Index("ix_records_table_created", "table_id", "created_at"),)
+    __table_args__ = (
+        Index("ix_records_table_created", "table_id", "created_at"),
+        # Declared so autogenerate does not propose dropping the index the
+        # initial migration created for JSONB containment lookups.
+        Index("ix_records_data_gin", "data", postgresql_using="gin"),
+    )
     id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
     table_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("table_definitions.id", ondelete="CASCADE"))
     data: Mapped[dict] = mapped_column(jsonb(), nullable=False, default=dict)

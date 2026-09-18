@@ -29,7 +29,30 @@ Includes `captain-definition`, a production `Dockerfile`, and PowerShell scripts
 
 See `docs/04_technical/DEPLOYMENT_CAPROVER.md`.
 
+## Local development
+
+Backend tests (no PostgreSQL server needed — the suite runs on in-memory SQLite):
+
+```
+python -m venv .venv
+.venv/Scripts/pip install -r backend/requirements-dev.txt
+.venv/Scripts/python -m pytest
+```
+
+Frontend:
+
+```
+cd frontend
+npm install
+npm run build   # or: npm run dev
+```
+
 ## Status
 
-Foundation seed only. The first vertical slice is intentionally small:
-workspace → user-defined table → field definitions → JSONB records → saved views.
+The first vertical slice is implemented: workspace → user-defined table →
+field definitions → JSONB records, with create, list, edit and delete working
+end to end in EN/HE/PT-BR and RTL/LTR.
+
+Saved views, authentication, RBAC and relations are **not** implemented.
+
+See `docs/02_execution/07_progress.md` for exactly what exists today.
