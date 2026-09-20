@@ -80,6 +80,30 @@ export interface WorkspaceMember {
   created_at?: string | null;
 }
 
+export interface WorkspaceInvitation {
+  id: string;
+  email: string;
+  role: WorkspaceRole;
+  invited_by_user_id: string;
+  expires_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+  created_at: string | null;
+}
+
+export interface CreatedWorkspaceInvitation extends WorkspaceInvitation {
+  invitation_url: string;
+}
+
+export interface PublicInvitation {
+  workspace_name: string;
+  workspace_default_locale: SupportedLocale;
+  email: string;
+  role: WorkspaceRole;
+  expires_at: string;
+  account_exists: boolean;
+}
+
 export interface TableSummary {
   id: string;
   workspace_id: string;

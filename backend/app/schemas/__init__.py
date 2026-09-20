@@ -8,6 +8,7 @@ from backend.app.schemas.auth import (
 )
 from backend.app.schemas.field import FieldCreate, FieldRead, FieldTypeCatalog, FieldUpdate
 from backend.app.schemas.membership import MemberCreate, MemberRead, MemberUpdate
+from backend.app.schemas.invitation import InvitationAccept, InvitationCreate, InvitationCreatedRead, InvitationPublicRead, InvitationRead
 from backend.app.schemas.record import RecordCreate, RecordPage, RecordRead, RecordWrite
 from backend.app.schemas.table import TableCreate, TableDetail, TableRead, TableUpdate
 from backend.app.schemas.workspace import WorkspaceCreate, WorkspaceRead, WorkspaceUpdate
@@ -23,6 +24,11 @@ __all__ = [
     "MemberCreate",
     "MemberRead",
     "MemberUpdate",
+    "InvitationAccept",
+    "InvitationCreate",
+    "InvitationCreatedRead",
+    "InvitationPublicRead",
+    "InvitationRead",
     "ProfileUpdate",
     "RecordCreate",
     "RecordPage",

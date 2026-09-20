@@ -8,6 +8,8 @@ import {
   Workspace,
   WorkspaceMember,
   WorkspaceRole,
+  WorkspaceInvitation,
+  CreatedWorkspaceInvitation,
 } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorNote, Loading } from "../components/Feedback";
@@ -27,6 +29,8 @@ export default function WorkspaceSettingsPage() {
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [members, setMembers] = useState<WorkspaceMember[] | null>(null);
+  const [invitations, setInvitations] = useState<WorkspaceInvitation[] | null>(null);
+  const [createdInvitation, setCreatedInvitation] = useState<CreatedWorkspaceInvitation | null>(null);
   const [name, setName] = useState("");
   const [defaultLocale, setDefaultLocale] = useState<SupportedLocale>("en");
   const [email, setEmail] = useState("");
@@ -49,16 +53,18 @@ export default function WorkspaceSettingsPage() {
 
   useEffect(() => {
     setError(null);
-    const requests: [Promise<Workspace>, Promise<WorkspaceMember[]>] = [
+    const requests: [Promise<Workspace>, Promise<WorkspaceMember[]>, Promise<WorkspaceInvitation[]>] = [
       api.getWorkspace(workspaceId),
       canManageMembers ? api.listMembers(workspaceId) : Promise.resolve([]),
+      canManageMembers ? api.listInvitations(workspaceId) : Promise.resolve([]),
     ];
     Promise.all(requests)
-      .then(([loadedWorkspace, loadedMembers]) => {
+      .then(([loadedWorkspace, loadedMembers, loadedInvitations]) => {
         setWorkspace(loadedWorkspace);
         setName(loadedWorkspace.name);
         setDefaultLocale(loadedWorkspace.default_locale);
         setMembers(loadedMembers);
+        setInvitations(loadedInvitations);
         applyWorkspaceLocale(loadedWorkspace.default_locale);
       })
     .catch(() => setError(t("operationFailed")));
@@ -70,6 +76,7 @@ export default function WorkspaceSettingsPage() {
     setBusy(true);
     setError(null);
     setNotice(null);
+    setCreatedInvitation(null);
     try {
       const updated = await api.updateWorkspace(workspaceId, {
         name: name.trim(),
@@ -101,7 +108,18 @@ export default function WorkspaceSettingsPage() {
       setNewRole("VIEWER");
       setNotice(t("memberAdded"));
     } catch (err) {
-      setError(presentError(err, "add"));
+      if (err instanceof ApiError && err.status === 404) {
+        try {
+          const invitation = await api.createInvitation(workspaceId, { email: email.trim(), role: newRole });
+          setInvitations((current) => [invitation, ...(current ?? [])]);
+          setCreatedInvitation(invitation);
+          setEmail("");
+          setNewRole("VIEWER");
+          setNotice(t("invitationCreated"));
+        } catch (inviteError) {
+          setError(presentError(inviteError, "add"));
+        }
+      } else setError(presentError(err, "add"));
     } finally {
       setBusy(false);
     }
@@ -142,10 +160,32 @@ export default function WorkspaceSettingsPage() {
     }
   };
 
+  const copyInvitation = async () => {
+    if (!createdInvitation) return;
+    try {
+      await navigator.clipboard.writeText(createdInvitation.invitation_url);
+      setNotice(t("invitationLinkCopied"));
+    } catch {
+      setError(t("operationFailed"));
+    }
+  };
+
+  const revokeInvitation = async (invitation: WorkspaceInvitation) => {
+    setBusy(true);
+    try {
+      await api.revokeInvitation(workspaceId, invitation.id);
+      setInvitations((current) => current?.map((item) => item.id === invitation.id ? { ...item, revoked_at: new Date().toISOString() } : item) ?? []);
+    } catch (err) {
+      setError(presentError(err, "remove"));
+    } finally { setBusy(false); }
+  };
+
   const canEditMember = (member: WorkspaceMember) =>
     canManageMembers
     && (actorRole === "OWNER" || member.role !== "OWNER")
     && !(member.role === "OWNER" && ownerCount <= 1);
+  const canManageInvitation = (invitation: WorkspaceInvitation) =>
+    canManageMembers && (actorRole === "OWNER" || invitation.role !== "OWNER");
 
   if (!canManageMembers && !canManageWorkspace) {
     return (
@@ -207,6 +247,14 @@ export default function WorkspaceSettingsPage() {
             )}
             {!canManageWorkspace && <p className="muted compact">{t("ownerOnlyGeneral")}</p>}
           </form>
+
+          {createdInvitation && (
+            <div className="settingsPanel invitationCreated">
+              <strong>{createdInvitation.email}</strong>
+              <small>{t(`roles.${createdInvitation.role}`)} · {new Date(createdInvitation.expires_at).toLocaleDateString()}</small>
+              <button type="button" className="secondary" onClick={() => void copyInvitation()}>{t("copyInvitationLink")}</button>
+            </div>
+          )}
         </section>
       )}
 
@@ -316,6 +364,17 @@ export default function WorkspaceSettingsPage() {
               </table>
               </div>
             </>
+          )}
+          {invitations && (
+            <div className="listPanel">
+              <h3>{t("pendingInvitations")}</h3>
+              {invitations.filter((item) => !item.accepted_at && !item.revoked_at && new Date(item.expires_at) > new Date()).map((invitation) => (
+                <div className="listItem" key={invitation.id}>
+                  <div><strong><Technical>{invitation.email}</Technical></strong><small>{t(`roles.${invitation.role}`)} · {new Date(invitation.expires_at).toLocaleDateString()}</small></div>
+                  {canManageInvitation(invitation) && <button type="button" className="danger" disabled={busy} onClick={() => void revokeInvitation(invitation)}>{t("revokeInvitation")}</button>}
+                </div>
+              ))}
+            </div>
           )}
         </section>
       )}

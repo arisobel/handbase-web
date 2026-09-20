@@ -75,3 +75,9 @@
   authoritative when present. `Workspace.default_locale` is fallback/default,
   never an override; `DEFAULT_LOCALE` is last. Persisted/API values are limited
   to `en`, `he` and `pt-BR` by the shared backend locale module.
+- **DEC-022** Workspace invitations are one-time opaque tokens: only a SHA-256
+  digest is stored, tokens expire after configurable `INVITATION_TTL_HOURS`
+  (seven days by default), and a new invitation for the same email/workspace
+  revokes its prior pending invitation. Acceptance is transactional; existing
+  accounts must authenticate as the invited email, while new accounts are
+  created from the locked invitation email.

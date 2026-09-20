@@ -11,6 +11,7 @@ export default function LoginPage() {
   const { session, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const inviteToken = new URLSearchParams(location.search).get("invite");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export default function LoginPage() {
 
   if (session) {
     const from = (location.state as { from?: string } | null)?.from;
-    return <Navigate to={from && from !== "/login" ? from : "/"} replace />;
+    return <Navigate to={inviteToken ? `/invite/${inviteToken}` : from && from !== "/login" ? from : "/"} replace />;
   }
 
   const submit = async (event: FormEvent) => {
@@ -35,7 +36,7 @@ export default function LoginPage() {
     try {
       await login(email.trim(), password);
       const from = (location.state as { from?: string } | null)?.from;
-      navigate(from && from !== "/login" ? from : "/", { replace: true });
+      navigate(inviteToken ? `/invite/${inviteToken}` : from && from !== "/login" ? from : "/", { replace: true });
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError.status === 401 ? t("invalidCredentials") : apiError.message);

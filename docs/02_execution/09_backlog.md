@@ -26,8 +26,6 @@ See `07_progress.md` for exactly what each of these covers.
 - Validate a real CapRover deploy. The packaging path is now proven locally
   (the tarball builds a working image); the remaining unknown is the server.
 - Rate limiting / lockout on `/api/v1/auth/login`.
-- Invitation tokens, copyable acceptance links and onboarding for email
-  addresses that do not yet have an account. Email delivery remains optional.
 - CRUD API for `view_definitions` (the model exists; no endpoints yet).
 - Run the fast and PostgreSQL suites in CI, and fail the build when the
   PostgreSQL suite skips.
@@ -36,6 +34,8 @@ See `07_progress.md` for exactly what each of these covers.
 ## P1
 
 - Self-service password reset (email delivery).
+- Optional invitation email delivery (SMTP/provider integration). Copyable
+  invitation links and onboarding are implemented; no email is sent by design.
 - Filter expressions and saved views.
 - Relations.
 - Global search.

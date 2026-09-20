@@ -3,6 +3,7 @@ import RequireAuth from "./auth/RequireAuth";
 import DashboardPage from "./pages/DashboardPage";
 import EditRecordPage from "./pages/EditRecordPage";
 import LoginPage from "./pages/LoginPage";
+import InvitePage from "./pages/InvitePage";
 import NewRecordPage from "./pages/NewRecordPage";
 import TableRecordsPage from "./pages/TableRecordsPage";
 import TableSettingsPage from "./pages/TableSettingsPage";
@@ -16,6 +17,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/invite/:token" element={<InvitePage />} />
       <Route path="/" element={guarded(<DashboardPage />)} />
       <Route path="/workspaces/:workspaceId" element={guarded(<WorkspacePage />)} />
       <Route

@@ -193,6 +193,23 @@ record → list → edit → delete.
   truncates long names, and stacks into a compact mobile dropdown without
   changing RTL direction behavior.
 
+## Implemented - phase 1.6.3, invitations and first-time onboarding
+
+- `workspace_invitations` (migration `20260920_05`) stores normalized email,
+  role, inviter, lifecycle timestamps and only a SHA-256 token digest. Tokens
+  are random, single-use, revocable and expire after `INVITATION_TTL_HOURS`
+  (seven days by default).
+- OWNER/ADMIN can create and list invitations; the existing OWNER boundary also
+  applies to invitation creation and revocation. A replacement invitation
+  revokes any existing pending invitation for that email/workspace.
+- The Members screen falls back from an unknown existing-account lookup to an
+  invitation, exposes its link only at creation time for manual copying, and
+  lists pending invitations without token material.
+- `/invite/:token` validates a link, locks the invited email, creates a new
+  account and membership transactionally, or asks an existing-account invitee
+  to authenticate before accepting. Personal locale selected during onboarding
+  becomes the user preference; no email delivery is claimed or implemented.
+
 ## Implemented - deploy hardening
 
 - `deploy/deploy.ps1` replaces `scripts/build-tar.ps1` and

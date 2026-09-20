@@ -12,6 +12,9 @@ import {
   type TableSummary,
   type Workspace,
   type WorkspaceMember,
+  type WorkspaceInvitation,
+  type CreatedWorkspaceInvitation,
+  type PublicInvitation,
   type WorkspaceRole,
   type SupportedLocale,
 } from "./types";
@@ -152,6 +155,16 @@ export const api = {
     request<void>(`/workspaces/${workspaceId}/members/${membershipId}`, {
       method: "DELETE",
     }),
+  createInvitation: (workspaceId: string, payload: { email: string; role: WorkspaceRole }) =>
+    request<CreatedWorkspaceInvitation>(`/workspaces/${workspaceId}/invitations`, json("POST", payload)),
+  listInvitations: (workspaceId: string) => request<WorkspaceInvitation[]>(`/workspaces/${workspaceId}/invitations`),
+  revokeInvitation: (workspaceId: string, invitationId: string) =>
+    request<void>(`/workspaces/${workspaceId}/invitations/${invitationId}`, { method: "DELETE" }),
+  getInvitation: (token: string) => request<PublicInvitation>(`/invitations/${encodeURIComponent(token)}`),
+  acceptInvitation: (token: string, payload: { display_name?: string; password?: string; preferred_locale?: SupportedLocale }) =>
+    request<{ workspace_id: string; workspace_name: string; email: string; role: WorkspaceRole }>(
+      `/invitations/${encodeURIComponent(token)}/accept`, json("POST", payload), false,
+    ),
 
   listTables: (workspaceId: string) =>
     request<TableSummary[]>(`/tables?workspace_id=${encodeURIComponent(workspaceId)}`),

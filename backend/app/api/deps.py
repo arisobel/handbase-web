@@ -57,6 +57,23 @@ def get_current_user(
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
+def get_optional_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)] = None,
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Resolve a bearer when present, but keep public invitation onboarding public."""
+    if credentials is None or not credentials.credentials:
+        return None
+    try:
+        user_id = decode_access_token(credentials.credentials)
+    except InvalidTokenError as exc:
+        raise UnauthenticatedError("Invalid or expired access token.") from exc
+    user = db.get(User, user_id)
+    if user is None or not user.is_active:
+        raise UnauthenticatedError("Invalid or expired access token.")
+    return user
+
+
 def authorize_workspace(
     db: Session,
     user: User,

@@ -1,4 +1,4 @@
-from .auth import RefreshToken, User, WorkspaceMembership, WorkspaceRole
+from .auth import RefreshToken, User, WorkspaceInvitation, WorkspaceMembership, WorkspaceRole
 from .metadata import FieldDefinition, Record, TableDefinition, ViewDefinition, Workspace
 
 __all__ = [
@@ -7,6 +7,7 @@ __all__ = [
     "RefreshToken",
     "TableDefinition",
     "User",
+    "WorkspaceInvitation",
     "ViewDefinition",
     "Workspace",
     "WorkspaceMembership",

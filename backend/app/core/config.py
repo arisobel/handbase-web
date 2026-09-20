@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     #: refresh token in the database is the revocation point.
     access_token_ttl_seconds: int = 900
     refresh_token_ttl_seconds: int = 1_209_600  # 14 days
+    invitation_ttl_hours: int = 168  # 7 days
     auth_cookie_name: str = "handbase_refresh"
     #: `None` means "secure in production, plain over http elsewhere" so local
     #: development works without TLS while production never sends the cookie

@@ -88,3 +88,12 @@ def hash_refresh_token(token: str) -> str:
     ~288 bits of entropy, so there is nothing to brute-force.
     """
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def generate_invitation_token() -> str:
+    """Opaque high-entropy, one-time token; only its SHA-256 digest is stored."""
+    return secrets.token_urlsafe(48)
+
+
+def hash_invitation_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
