@@ -259,7 +259,11 @@ export default function WorkspaceSettingsPage() {
                           ? t(`locales.${member.preferred_locale}`)
                           : t("workspaceDefault")}
                       </td>
-                      <td data-label={t("status")}><span className="statusBadge">{t("active")}</span></td>
+                      <td data-label={t("status")}>
+                        <span className={member.is_active ? "statusBadge" : "statusBadge inactive"}>
+                          {t(member.is_active ? "active" : "inactive")}
+                        </span>
+                      </td>
                       <td className="actionsCell" data-label={t("actions")}>
                         {canEditMember(member) && (
                           <button

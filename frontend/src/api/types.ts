@@ -76,6 +76,7 @@ export interface WorkspaceMember {
   display_name: string;
   role: WorkspaceRole;
   preferred_locale: SupportedLocale | null;
+  is_active: boolean;
   created_at?: string | null;
 }
 

@@ -23,6 +23,7 @@ def _member_read(membership: WorkspaceMembership, user) -> MemberRead:
         display_name=user.display_name,
         role=membership.role,
         preferred_locale=user.preferred_locale,
+        is_active=user.is_active,
         created_at=membership.created_at,
     )
 
@@ -87,7 +88,7 @@ def update_member(
 ):
     current = membership_service.get_workspace_membership(db, workspace_id, membership_id)
     authz.authorize_member_role_change(
-        actor, current_role=WorkspaceRole(current.role), new_role=payload.role
+        actor, current_role=authz.role_of(current), new_role=payload.role
     )
     membership = membership_service.change_role(
         db, workspace_id=workspace_id, membership_id=membership_id, role=payload.role
@@ -108,7 +109,7 @@ def remove_member(
     db: Session = Depends(get_db),
 ):
     current = membership_service.get_workspace_membership(db, workspace_id, membership_id)
-    authz.authorize_member_role_change(actor, current_role=WorkspaceRole(current.role))
+    authz.authorize_member_role_change(actor, current_role=authz.role_of(current))
     membership_service.remove_member(
         db, workspace_id=workspace_id, membership_id=membership_id
     )

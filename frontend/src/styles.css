@@ -158,6 +158,7 @@ button:disabled { opacity: .6; cursor: progress; }
   padding: 4px 9px;
   font-size: 12px;
 }
+.statusBadge.inactive { background: #f2f4f6; color: #607080; }
 
 /* ------------------------------------------------------------------ cards -- */
 

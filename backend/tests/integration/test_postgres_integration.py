@@ -64,6 +64,12 @@ def test_columns_are_native_postgres_types(pg_session):
     assert type(columns["id"]).__name__ == "UUID"
     assert type(columns["data"]).__name__ == "JSONB"
 
+    user_columns = {
+        column["name"]: column
+        for column in inspect(pg_session.get_bind()).get_columns("users")
+    }
+    assert user_columns["preferred_locale"]["nullable"] is True
+
 
 def test_expected_indexes_exist(pg_session):
     indexes = {index["name"] for index in inspect(pg_session.get_bind()).get_indexes("records")}

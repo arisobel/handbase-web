@@ -2,6 +2,7 @@
 import uuid
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.app.models import User, WorkspaceMembership, WorkspaceRole
@@ -40,7 +41,11 @@ def add_existing_user(
         workspace_id=workspace_id, user_id=user.id, role=role.value
     )
     db.add(membership)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise ConflictError("That user is already a member of this workspace.") from exc
     db.refresh(membership)
     return membership, user
 

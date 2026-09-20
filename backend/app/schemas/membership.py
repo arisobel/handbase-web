@@ -23,4 +23,5 @@ class MemberRead(BaseModel):
     display_name: str
     role: WorkspaceRole
     preferred_locale: SupportedLocale | None
+    is_active: bool
     created_at: datetime | None = None
