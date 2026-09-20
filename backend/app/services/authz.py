@@ -36,7 +36,9 @@ class Capability(enum.StrEnum):
     WRITE_RECORDS = "write_records"
     #: Create, edit or delete tables and fields.
     CHANGE_STRUCTURE = "change_structure"
-    #: Rename or delete the workspace itself, and manage its members.
+    #: Add, update or remove memberships inside the workspace.
+    MANAGE_MEMBERS = "manage_members"
+    #: Rename or delete the workspace itself.
     MANAGE_WORKSPACE = "manage_workspace"
 
 
@@ -45,7 +47,12 @@ class Capability(enum.StrEnum):
 ROLE_CAPABILITIES: dict[WorkspaceRole, frozenset[Capability]] = {
     WorkspaceRole.OWNER: frozenset(Capability),
     WorkspaceRole.ADMIN: frozenset(
-        {Capability.READ, Capability.WRITE_RECORDS, Capability.CHANGE_STRUCTURE}
+        {
+            Capability.READ,
+            Capability.WRITE_RECORDS,
+            Capability.CHANGE_STRUCTURE,
+            Capability.MANAGE_MEMBERS,
+        }
     ),
     WorkspaceRole.EDITOR: frozenset({Capability.READ, Capability.WRITE_RECORDS}),
     WorkspaceRole.VIEWER: frozenset({Capability.READ}),
@@ -66,6 +73,19 @@ def capabilities_of(role: WorkspaceRole) -> frozenset[Capability]:
 
 def has_capability(membership: WorkspaceMembership, capability: Capability) -> bool:
     return capability in capabilities_of(role_of(membership))
+
+
+def authorize_member_role_change(
+    actor: WorkspaceMembership,
+    *,
+    current_role: WorkspaceRole | None = None,
+    new_role: WorkspaceRole | None = None,
+) -> None:
+    """Prevent ADMIN from crossing the OWNER privilege boundary."""
+    if role_of(actor) is WorkspaceRole.OWNER:
+        return
+    if current_role is WorkspaceRole.OWNER or new_role is WorkspaceRole.OWNER:
+        raise AuthorizationError("Only an OWNER can manage OWNER memberships.")
 
 
 # --------------------------------------------------------------------------- #

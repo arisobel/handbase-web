@@ -1,6 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, setSessionListener } from "../api/client";
-import type { Capability, Identity, Membership, Session } from "../api/types";
+import type {
+  Capability,
+  Identity,
+  Membership,
+  Session,
+  SupportedLocale,
+} from "../api/types";
 import i18n, { applyDocumentDirection } from "../i18n";
 
 interface AuthState {
@@ -8,7 +14,9 @@ interface AuthState {
   session: Identity | null | undefined;
   login: (email: string, password: string) => Promise<Session>;
   logout: () => Promise<void>;
-  setLocale: (locale: string) => Promise<void>;
+  setLocale: (locale: SupportedLocale) => Promise<void>;
+  applyWorkspaceLocale: (locale: SupportedLocale) => void;
+  refreshIdentity: () => Promise<void>;
   /** Capability check for one workspace; the server enforces the same rules. */
   can: (workspaceId: string | undefined, capability: Capability) => boolean;
   membershipFor: (workspaceId: string | undefined) => Membership | undefined;
@@ -16,7 +24,7 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
-function applyLocale(locale: string) {
+function applyLocale(locale: SupportedLocale) {
   void i18n.changeLanguage(locale);
   localStorage.setItem("locale", locale);
   applyDocumentDirection(locale);
@@ -39,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void api.restoreSession().then((restored) => {
       if (cancelled) return;
       setSession(restored);
-      if (restored) applyLocale(restored.user.preferred_locale);
+      if (restored) applyLocale(restored.user.preferred_locale ?? restored.effective_locale);
     });
     return () => {
       cancelled = true;
@@ -50,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const next = await api.login(email, password);
     setSession(next);
     // The account's stored preference wins over whatever this browser last used.
-    applyLocale(next.user.preferred_locale);
+    applyLocale(next.user.preferred_locale ?? next.effective_locale);
     return next;
   }, []);
 
@@ -60,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setLocale = useCallback(
-    async (locale: string) => {
+    async (locale: SupportedLocale) => {
       applyLocale(locale);
       if (!session) return;
       // Persist it so the choice follows the account to any other device.
@@ -69,6 +77,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [session],
   );
+
+  const applyWorkspaceLocale = useCallback(
+    (locale: SupportedLocale) => {
+      if (session && !session.user.preferred_locale) applyLocale(locale);
+    },
+    [session],
+  );
+
+  const refreshIdentity = useCallback(async () => {
+    const updated = await api.me();
+    setSession(updated);
+    applyLocale(updated.user.preferred_locale ?? updated.effective_locale);
+  }, []);
 
   const membershipFor = useCallback(
     (workspaceId: string | undefined) =>
@@ -85,8 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthState>(
-    () => ({ session, login, logout, setLocale, can, membershipFor }),
-    [session, login, logout, setLocale, can, membershipFor],
+    () => ({ session, login, logout, setLocale, applyWorkspaceLocale, refreshIdentity, can, membershipFor }),
+    [session, login, logout, setLocale, applyWorkspaceLocale, refreshIdentity, can, membershipFor],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

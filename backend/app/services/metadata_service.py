@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from backend.app.models import FieldDefinition, Record, TableDefinition, Workspace
+from backend.app.core.locales import validate_locale
 from backend.app.services.errors import ConflictError, NotFoundError, ValidationError, ValidationIssue
 from backend.app.services.field_types import SINGLE_SELECT, SUPPORTED_FIELD_TYPES, select_options
 from backend.app.services.identifiers import unique_identifier
@@ -31,7 +32,9 @@ def get_workspace(db: Session, workspace_id: uuid.UUID) -> Workspace:
 
 
 def create_workspace(db: Session, *, name: str, default_locale: str = "en") -> Workspace:
-    workspace = Workspace(name=name.strip(), default_locale=default_locale)
+    workspace = Workspace(
+        name=name.strip(), default_locale=validate_locale(default_locale, field="default_locale")
+    )
     db.add(workspace)
     db.commit()
     db.refresh(workspace)
@@ -49,7 +52,7 @@ def update_workspace(
     if name is not None:
         workspace.name = name.strip()
     if default_locale is not None:
-        workspace.default_locale = default_locale
+        workspace.default_locale = validate_locale(default_locale, field="default_locale")
     db.commit()
     db.refresh(workspace)
     return workspace

@@ -2,6 +2,8 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.app.core.locales import SupportedLocale
+
 
 class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=320)
@@ -14,13 +16,13 @@ class UserRead(BaseModel):
     id: uuid.UUID
     email: str
     display_name: str
-    preferred_locale: str
+    preferred_locale: SupportedLocale | None
     is_active: bool
 
 
 class ProfileUpdate(BaseModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=200)
-    preferred_locale: str | None = Field(default=None, max_length=10)
+    preferred_locale: SupportedLocale | None = None
 
 
 class MembershipRead(BaseModel):
@@ -46,8 +48,10 @@ class SessionRead(BaseModel):
     expires_in: int
     user: UserRead
     memberships: list[MembershipRead]
+    effective_locale: SupportedLocale
 
 
 class MeRead(BaseModel):
     user: UserRead
     memberships: list[MembershipRead]
+    effective_locale: SupportedLocale

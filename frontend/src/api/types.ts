@@ -23,15 +23,21 @@ export interface FieldConfig {
 }
 
 /** Capability names returned by the API; mirrors `services/authz.Capability`. */
-export type Capability = "read" | "write_records" | "change_structure" | "manage_workspace";
+export type Capability =
+  | "read"
+  | "write_records"
+  | "change_structure"
+  | "manage_members"
+  | "manage_workspace";
 
 export type WorkspaceRole = "OWNER" | "ADMIN" | "EDITOR" | "VIEWER";
+export type SupportedLocale = "en" | "he" | "pt-BR";
 
 export interface AuthUser {
   id: string;
   email: string;
   display_name: string;
-  preferred_locale: string;
+  preferred_locale: SupportedLocale | null;
   is_active: boolean;
 }
 
@@ -46,6 +52,7 @@ export interface Membership {
 export interface Identity {
   user: AuthUser;
   memberships: Membership[];
+  effective_locale: SupportedLocale;
 }
 
 /** What `/auth/login` and `/auth/refresh` return: an identity plus a token. */
@@ -58,7 +65,17 @@ export interface Session extends Identity {
 export interface Workspace {
   id: string;
   name: string;
-  default_locale: string;
+  default_locale: SupportedLocale;
+  created_at?: string | null;
+}
+
+export interface WorkspaceMember {
+  id: string;
+  user_id: string;
+  email: string;
+  display_name: string;
+  role: WorkspaceRole;
+  preferred_locale: SupportedLocale | null;
   created_at?: string | null;
 }
 

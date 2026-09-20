@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.app.core.config import get_settings
+from backend.app.core.locales import application_default_locale, resolve_locale, validate_locale
 from backend.app.core.security import (
     create_access_token,
     generate_refresh_token,
@@ -92,7 +93,11 @@ def create_user(
         email=normalized,
         display_name=(display_name or normalized.split("@")[0]).strip(),
         password_hash=hash_password(password),
-        preferred_locale=preferred_locale or get_settings().default_locale,
+        preferred_locale=(
+            validate_locale(preferred_locale, field="preferred_locale")
+            if preferred_locale is not None
+            else application_default_locale()
+        ),
     )
     db.add(user)
     db.commit()
@@ -110,7 +115,7 @@ def update_profile(
     if display_name is not None:
         user.display_name = display_name.strip()
     if preferred_locale is not None:
-        user.preferred_locale = preferred_locale
+        user.preferred_locale = validate_locale(preferred_locale, field="preferred_locale")
     db.commit()
     db.refresh(user)
     return user
@@ -262,9 +267,10 @@ def create_workspace_with_owner(
     unreachable — nobody can grant themselves access to it through the API. See
     :func:`adopt_orphan_workspaces` for repairing ones that predate membership.
     """
-    workspace = Workspace(
-        name=name.strip(), default_locale=default_locale or user.preferred_locale
-    )
+    resolved_default = resolve_locale(user.preferred_locale)
+    if default_locale is not None:
+        resolved_default = validate_locale(default_locale, field="default_locale")
+    workspace = Workspace(name=name.strip(), default_locale=resolved_default)
     db.add(workspace)
     db.flush()
     db.add(

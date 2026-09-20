@@ -10,7 +10,7 @@ import Layout from "../components/Layout";
 export default function WorkspacePage() {
   const { t } = useTranslation();
   const { workspaceId = "" } = useParams();
-  const { can, membershipFor } = useAuth();
+  const { can, membershipFor, applyWorkspaceLocale } = useAuth();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [tables, setTables] = useState<TableSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,9 +28,10 @@ export default function WorkspacePage() {
       .then(([loadedWorkspace, loadedTables]) => {
         setWorkspace(loadedWorkspace);
         setTables(loadedTables);
+        applyWorkspaceLocale(loadedWorkspace.default_locale);
       })
       .catch((err: Error) => setError(err.message));
-  }, [workspaceId]);
+  }, [workspaceId, applyWorkspaceLocale]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -58,6 +59,13 @@ export default function WorkspacePage() {
       title={workspace?.name ?? t("workspace")}
       subtitle={role ? t(`roles.${role}`) : t("tables")}
       backTo="/"
+      actions={
+        (can(workspaceId, "manage_members") || can(workspaceId, "manage_workspace")) && (
+          <Link className="buttonLink secondary" to={`/workspaces/${workspaceId}/settings`}>
+            {t("workspaceSettings")}
+          </Link>
+        )
+      }
     >
       <section>
         {canBuild && (

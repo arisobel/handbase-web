@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from backend.app.core.config import get_settings
+from backend.app.core.locales import SUPPORTED_LOCALES
 from backend.app.db.session import get_db
 from backend.app.db.migrations import current_revisions, expected_head
 
@@ -24,7 +25,7 @@ def health(db: Session = Depends(get_db)):
         "environment": settings.app_env,
         "revision": settings.app_build_revision,
         "rtl": True,
-        "locales": ["en", "he", "pt-BR"],
+        "locales": list(SUPPORTED_LOCALES),
     }
 
 

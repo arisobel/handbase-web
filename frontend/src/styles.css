@@ -119,7 +119,45 @@ button:disabled { opacity: .6; cursor: progress; }
   padding: 12px 14px;
   margin-block: 12px;
 }
+.successNote {
+  background: #edf8f1;
+  border: 1px solid #bcdcc7;
+  border-radius: 12px;
+  color: #28643d;
+  padding: 12px 14px;
+  margin-block: 12px;
+}
 .empty, .muted { color: #768696; padding-block: 12px; }
+.muted.compact { padding-block: 0; }
+
+/* ------------------------------------------------------------- settings -- */
+
+.settingsSection + .settingsSection { margin-block-start: 28px; }
+.settingsPanel {
+  background: #fff;
+  border: 1px solid #e1e6eb;
+  border-radius: 16px;
+  padding: 16px;
+}
+.memberAddForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, .45fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-block-end: 16px;
+}
+.memberAddButton { white-space: nowrap; }
+.memberAddHint { grid-column: 1 / -1; margin: 0; }
+.memberTable select { min-width: 130px; padding: 8px 10px; }
+.memberTable strong, .memberTable small { display: block; }
+.statusBadge {
+  display: inline-block;
+  background: #edf8f1;
+  color: #28643d;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+}
 
 /* ------------------------------------------------------------------ cards -- */
 
@@ -181,6 +219,8 @@ code {
 /* Narrow screens: each row becomes a stacked card. Labels come from the
    `data-label` attribute so the markup stays a single table. */
 @media (max-width: 640px) {
+  .memberAddForm { grid-template-columns: 1fr; }
+  .memberAddHint { grid-column: auto; }
   .recordTable, .recordTable tbody, .recordTable tr, .recordTable td { display: block; }
   .recordTable thead { display: none; }
   .recordTable tr {

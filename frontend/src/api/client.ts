@@ -11,6 +11,9 @@ import {
   type TableDetail,
   type TableSummary,
   type Workspace,
+  type WorkspaceMember,
+  type WorkspaceRole,
+  type SupportedLocale,
 } from "./types";
 
 const BASE = "/api/v1";
@@ -124,14 +127,31 @@ export const api = {
     }
   },
   me: () => request<Identity>("/auth/me"),
-  updateProfile: (payload: { display_name?: string; preferred_locale?: string }) =>
+  updateProfile: (payload: { display_name?: string; preferred_locale?: SupportedLocale }) =>
     request<Identity>("/auth/me", json("PATCH", payload)),
 
   listWorkspaces: () => request<Workspace[]>("/workspaces"),
   getWorkspace: (id: string) => request<Workspace>(`/workspaces/${id}`),
-  createWorkspace: (payload: { name: string; default_locale?: string }) =>
+  createWorkspace: (payload: { name: string; default_locale?: SupportedLocale }) =>
     request<Workspace>("/workspaces", json("POST", payload)),
+  updateWorkspace: (
+    id: string,
+    payload: { name?: string; default_locale?: SupportedLocale },
+  ) => request<Workspace>(`/workspaces/${id}`, json("PATCH", payload)),
   deleteWorkspace: (id: string) => request<void>(`/workspaces/${id}`, { method: "DELETE" }),
+  listMembers: (workspaceId: string) =>
+    request<WorkspaceMember[]>(`/workspaces/${workspaceId}/members`),
+  addMember: (workspaceId: string, payload: { email: string; role: WorkspaceRole }) =>
+    request<WorkspaceMember>(`/workspaces/${workspaceId}/members`, json("POST", payload)),
+  updateMember: (workspaceId: string, membershipId: string, role: WorkspaceRole) =>
+    request<WorkspaceMember>(
+      `/workspaces/${workspaceId}/members/${membershipId}`,
+      json("PATCH", { role }),
+    ),
+  removeMember: (workspaceId: string, membershipId: string) =>
+    request<void>(`/workspaces/${workspaceId}/members/${membershipId}`, {
+      method: "DELETE",
+    }),
 
   listTables: (workspaceId: string) =>
     request<TableSummary[]>(`/tables?workspace_id=${encodeURIComponent(workspaceId)}`),

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import i18n from "../i18n";
+import type { SupportedLocale } from "../api/types";
 import Technical from "./Technical";
 
 interface LayoutProps {
@@ -42,7 +43,7 @@ export default function Layout({ title, subtitle, backTo, actions, children }: L
           <select
             aria-label={t("language")}
             value={i18n.language}
-            onChange={(event) => void setLocale(event.target.value)}
+            onChange={(event) => void setLocale(event.target.value as SupportedLocale)}
           >
             <option value="en">English</option>
             <option value="he">עברית</option>

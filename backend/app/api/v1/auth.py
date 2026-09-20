@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.api.deps import CurrentUser
 from backend.app.core.config import get_settings
+from backend.app.core.locales import resolve_locale
 from backend.app.db.session import get_db
 from backend.app.models import User
 from backend.app.schemas.auth import (
@@ -74,6 +75,7 @@ def _session_payload(db: Session, user: User, access_token: str, expires_in: int
         expires_in=expires_in,
         user=UserRead.model_validate(user),
         memberships=_memberships(db, user),
+        effective_locale=resolve_locale(user.preferred_locale),
     )
 
 
@@ -113,7 +115,11 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=MeRead)
 def me(user: CurrentUser, db: Session = Depends(get_db)):
-    return MeRead(user=UserRead.model_validate(user), memberships=_memberships(db, user))
+    return MeRead(
+        user=UserRead.model_validate(user),
+        memberships=_memberships(db, user),
+        effective_locale=resolve_locale(user.preferred_locale),
+    )
 
 
 @router.patch("/me", response_model=MeRead)
@@ -122,4 +128,8 @@ def update_me(payload: ProfileUpdate, user: CurrentUser, db: Session = Depends(g
     updated = auth_service.update_profile(
         db, user, display_name=payload.display_name, preferred_locale=payload.preferred_locale
     )
-    return MeRead(user=UserRead.model_validate(updated), memberships=_memberships(db, updated))
+    return MeRead(
+        user=UserRead.model_validate(updated),
+        memberships=_memberships(db, updated),
+        effective_locale=resolve_locale(updated.preferred_locale),
+    )
