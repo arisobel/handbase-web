@@ -155,6 +155,44 @@ record → list → edit → delete.
   because Docker was not installed; the suite now also asserts migration 04's
   nullable locale column and remains required before deployment.
 
+## Implemented - phase 1.6.1, administration UX completion
+
+- Workspace administration is now discoverable from the workspace overview:
+  the current member role is visible and OWNER/ADMIN receive a prominent
+  Settings action. EDITOR and VIEWER receive neither an administration action
+  nor an implied permission.
+- Settings keeps the workspace name, current role and a back route in context;
+  General and Members have clear anchor tabs. OWNER-only general settings and
+  the administrator boundary around OWNER memberships are explained in place.
+- Member actions remain explicit: add by existing-account email, change role,
+  and remove. The final OWNER is visibly protected before an action is offered;
+  duplicate, unknown-account, forbidden and last-owner responses are rendered
+  as localized product messages rather than raw API error text.
+- The persistent header language selector is explicitly labelled as a personal
+  preference. It saves immediately, reports success or failure, and restores
+  the last persisted locale after a failed save. Workspace default language is
+  separately labelled as a fallback for members without a personal preference.
+- The settings navigation and workspace context reflow for narrow screens;
+  all additions use logical CSS and existing EN/HE/PT-BR translations, keeping
+  the same RTL behavior.
+
+## Implemented - phase 1.6.2, workspace switching and creation
+
+- Every loaded workspace-scoped screen now places a compact Workspace switcher
+  in the header. It uses the authenticated membership list, identifies the
+  active workspace by route id, and navigates client-side to the selected id.
+- The menu offers all available workspaces, creation and an explicit route to
+  the full workspace list. `/?view=all` deliberately bypasses the one-workspace
+  dashboard redirect, while normal login behavior remains unchanged.
+- New workspaces are created in one request with `name` and `default_locale`.
+  The locale defaults to the user's personal preference (or effective fallback)
+  without changing that personal preference. The creator identity is refreshed
+  and navigation moves directly to the newly owned workspace.
+- The existing dashboard creation form now uses the same default-language
+  choice and refreshes memberships. The switcher/menu uses logical CSS,
+  truncates long names, and stacks into a compact mobile dropdown without
+  changing RTL direction behavior.
+
 ## Implemented - deploy hardening
 
 - `deploy/deploy.ps1` replaces `scripts/build-tar.ps1` and

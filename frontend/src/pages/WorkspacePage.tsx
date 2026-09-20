@@ -54,20 +54,28 @@ export default function WorkspacePage() {
     }
   };
 
+  const canAdminister = can(workspaceId, "manage_members") || can(workspaceId, "manage_workspace");
+
   return (
     <Layout
       title={workspace?.name ?? t("workspace")}
-      subtitle={role ? t(`roles.${role}`) : t("tables")}
+      subtitle={t("workspaceOverview")}
+      workspaceId={workspaceId}
       backTo="/"
-      actions={
-        (can(workspaceId, "manage_members") || can(workspaceId, "manage_workspace")) && (
-          <Link className="buttonLink secondary" to={`/workspaces/${workspaceId}/settings`}>
-            {t("workspaceSettings")}
-          </Link>
-        )
-      }
     >
       <section>
+        {role && (
+          <div className="workspaceContextBar">
+            <span className="roleContext">
+              {t("currentRole")}: <strong>{t(`roles.${role}`)}</strong>
+            </span>
+            {canAdminister && (
+              <Link className="buttonLink secondary settingsEntry" to={`/workspaces/${workspaceId}/settings`}>
+                <span aria-hidden="true">⚙</span> {t("workspaceSettings")}
+              </Link>
+            )}
+          </div>
+        )}
         {canBuild && (
           <>
             <div className="sectionTitle">

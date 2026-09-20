@@ -48,6 +48,7 @@ export default function TableRecordsPage() {
     <Layout
       title={table?.name ?? t("records")}
       subtitle={table ? t("recordCount", { count: total }) : undefined}
+      workspaceId={table?.workspace_id}
       backTo={table ? `/workspaces/${table.workspace_id}` : "/"}
       actions={actions}
     >

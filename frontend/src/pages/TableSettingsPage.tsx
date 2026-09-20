@@ -97,7 +97,12 @@ export default function TableSettingsPage() {
   const canBuild = can(table.workspace_id, "change_structure");
 
   return (
-    <Layout title={table.name} subtitle={t("tableStructure")} backTo={`/tables/${table.id}`}>
+    <Layout
+      title={table.name}
+      subtitle={t("tableStructure")}
+      workspaceId={table.workspace_id}
+      backTo={`/tables/${table.id}`}
+    >
       {canBuild && (
       <section>
         <div className="sectionTitle">

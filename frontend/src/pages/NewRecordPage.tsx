@@ -40,7 +40,12 @@ export default function NewRecordPage() {
   };
 
   return (
-    <Layout title={table?.name ?? t("newRecord")} subtitle={t("newRecord")} backTo={`/tables/${tableId}`}>
+    <Layout
+      title={table?.name ?? t("newRecord")}
+      subtitle={t("newRecord")}
+      workspaceId={table?.workspace_id}
+      backTo={`/tables/${tableId}`}
+    >
       {error && <ErrorNote message={error} />}
       {table === null && !error && <Loading />}
       {table && (

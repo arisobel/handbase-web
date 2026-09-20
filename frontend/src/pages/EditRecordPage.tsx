@@ -65,6 +65,7 @@ export default function EditRecordPage() {
     <Layout
       title={table?.name ?? t("editRecord")}
       subtitle={canWrite ? t("editRecord") : t("viewRecord")}
+      workspaceId={table?.workspace_id}
       backTo={record ? `/tables/${record.table_id}` : "/"}
       actions={
         record &&

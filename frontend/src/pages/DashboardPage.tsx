@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { Workspace } from "../api/types";
+import type { SupportedLocale, Workspace } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { Empty, ErrorNote, Loading } from "../components/Feedback";
 import Layout from "../components/Layout";
@@ -16,12 +16,15 @@ import Layout from "../components/Layout";
  */
 export default function DashboardPage() {
   const { t } = useTranslation();
-  const { session, membershipFor } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { session, membershipFor, refreshIdentity } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [defaultLocale, setDefaultLocale] = useState<SupportedLocale | null>(null);
+  const creationLocale = defaultLocale ?? session?.user.preferred_locale ?? session?.effective_locale ?? "en";
 
   useEffect(() => {
     api
@@ -36,9 +39,11 @@ export default function DashboardPage() {
     setBusy(true);
     setError(null);
     try {
-      const created = await api.createWorkspace({ name: name.trim() });
+      const created = await api.createWorkspace({ name: name.trim(), default_locale: creationLocale });
+      await refreshIdentity();
       setWorkspaces((current) => [...(current ?? []), created]);
       setName("");
+      setDefaultLocale(null);
       setCreating(false);
     } catch (err) {
       setError((err as Error).message);
@@ -49,7 +54,7 @@ export default function DashboardPage() {
 
   // Skip the picker when there is nothing to pick — but only before the user
   // has started creating a second one.
-  if (!creating && workspaces?.length === 1) {
+  if (!creating && searchParams.get("view") !== "all" && workspaces?.length === 1) {
     return <Navigate to={`/workspaces/${workspaces[0].id}`} replace />;
   }
 
@@ -74,6 +79,15 @@ export default function DashboardPage() {
               autoFocus
               onChange={(event) => setName(event.target.value)}
             />
+            <select
+              aria-label={t("defaultLanguage")}
+              value={creationLocale}
+              onChange={(event) => setDefaultLocale(event.target.value as SupportedLocale)}
+            >
+              <option value="en">{t("locales.en")}</option>
+              <option value="he">{t("locales.he")}</option>
+              <option value="pt-BR">{t("locales.pt-BR")}</option>
+            </select>
             <button className="primary" type="submit" disabled={busy}>
               {t("create")}
             </button>

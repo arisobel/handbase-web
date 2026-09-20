@@ -2,8 +2,9 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
-import type {
-  SupportedLocale,
+import {
+  ApiError,
+  type SupportedLocale,
   Workspace,
   WorkspaceMember,
   WorkspaceRole,
@@ -33,6 +34,18 @@ export default function WorkspaceSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const ownerCount = members?.filter((member) => member.role === "OWNER").length ?? 0;
+
+  const presentError = (err: unknown, action: "add" | "role" | "remove" | "general") => {
+    if (!(err instanceof ApiError)) return t("operationFailed");
+    if (action === "add" && err.status === 404) return t("accountNotFound");
+    if (err.status === 409) {
+      if (err.message.includes("already a member")) return t("duplicateMember");
+      if (err.message.includes("last OWNER")) return t("lastOwnerProtected");
+    }
+    if (err.status === 403) return t("ownerProtected");
+    return t("operationFailed");
+  };
 
   useEffect(() => {
     setError(null);
@@ -48,7 +61,7 @@ export default function WorkspaceSettingsPage() {
         setMembers(loadedMembers);
         applyWorkspaceLocale(loadedWorkspace.default_locale);
       })
-      .catch((err: Error) => setError(err.message));
+    .catch(() => setError(t("operationFailed")));
   }, [workspaceId, canManageMembers, applyWorkspaceLocale]);
 
   const saveGeneral = async (event: FormEvent) => {
@@ -66,7 +79,7 @@ export default function WorkspaceSettingsPage() {
       applyWorkspaceLocale(updated.default_locale);
       setNotice(t("settingsSaved"));
     } catch (err) {
-      setError((err as Error).message);
+      setError(presentError(err, "general"));
     } finally {
       setBusy(false);
     }
@@ -88,7 +101,7 @@ export default function WorkspaceSettingsPage() {
       setNewRole("VIEWER");
       setNotice(t("memberAdded"));
     } catch (err) {
-      setError((err as Error).message);
+      setError(presentError(err, "add"));
     } finally {
       setBusy(false);
     }
@@ -106,7 +119,7 @@ export default function WorkspaceSettingsPage() {
       if (session?.user.id === member.user_id) await refreshIdentity();
       setNotice(t("roleUpdated"));
     } catch (err) {
-      setError((err as Error).message);
+      setError(presentError(err, "role"));
     } finally {
       setBusy(false);
     }
@@ -123,18 +136,20 @@ export default function WorkspaceSettingsPage() {
       if (session?.user.id === member.user_id) await refreshIdentity();
       setNotice(t("memberRemoved"));
     } catch (err) {
-      setError((err as Error).message);
+      setError(presentError(err, "remove"));
     } finally {
       setBusy(false);
     }
   };
 
   const canEditMember = (member: WorkspaceMember) =>
-    canManageMembers && (actorRole === "OWNER" || member.role !== "OWNER");
+    canManageMembers
+    && (actorRole === "OWNER" || member.role !== "OWNER")
+    && !(member.role === "OWNER" && ownerCount <= 1);
 
   if (!canManageMembers && !canManageWorkspace) {
     return (
-      <Layout title={t("workspaceSettings")} backTo={`/workspaces/${workspaceId}`}>
+      <Layout title={t("workspaceSettings")} workspaceId={workspaceId} backTo={`/workspaces/${workspaceId}`}>
         <ErrorNote message={t("settingsForbidden")} />
       </Layout>
     );
@@ -142,8 +157,9 @@ export default function WorkspaceSettingsPage() {
 
   return (
     <Layout
-      title={t("workspaceSettings")}
-      subtitle={workspace?.name}
+      title={workspace ? t("workspaceSettingsFor", { name: workspace.name }) : t("workspaceSettings")}
+      subtitle={actorRole ? `${t("currentRole")}: ${t(`roles.${actorRole}`)}` : undefined}
+      workspaceId={workspaceId}
       backTo={`/workspaces/${workspaceId}`}
     >
       {error && <ErrorNote message={error} />}
@@ -151,7 +167,14 @@ export default function WorkspaceSettingsPage() {
       {!workspace && !error && <Loading />}
 
       {workspace && (
-        <section className="settingsSection">
+        <nav className="settingsTabs" aria-label={t("workspaceSettings")}>
+          <a href="#general">{t("generalTab")}</a>
+          {canManageMembers && <a href="#members">{t("membersTab")}</a>}
+        </nav>
+      )}
+
+      {workspace && (
+        <section id="general" className="settingsSection">
           <div className="sectionTitle"><h2>{t("general")}</h2></div>
           <form className="form settingsPanel" onSubmit={saveGeneral}>
             <div className="formRow">
@@ -188,7 +211,7 @@ export default function WorkspaceSettingsPage() {
       )}
 
       {canManageMembers && (
-        <section className="settingsSection">
+        <section id="members" className="settingsSection">
           <div className="sectionTitle"><h2>{t("members")}</h2></div>
           <form className="memberAddForm settingsPanel" onSubmit={addMember}>
             <div className="formRow">
@@ -222,7 +245,9 @@ export default function WorkspaceSettingsPage() {
 
           {members === null && !error && <Loading />}
           {members && (
-            <div className="tableScroll">
+            <>
+              {members.length === 1 && <p className="muted compact">{t("onlyMember")}</p>}
+              <div className="tableScroll">
               <table className="recordTable memberTable">
                 <thead>
                   <tr>
@@ -252,7 +277,16 @@ export default function WorkspaceSettingsPage() {
                               <option key={role} value={role}>{t(`roles.${role}`)}</option>
                             ))}
                           </select>
-                        ) : t(`roles.${member.role}`)}
+                        ) : (
+                          <>
+                            <span>{t(`roles.${member.role}`)}</span>
+                            {member.role === "OWNER" && (
+                              <small className="memberRoleHint">
+                                {t(ownerCount <= 1 ? "lastOwnerProtected" : "ownerProtected")}
+                              </small>
+                            )}
+                          </>
+                        )}
                       </td>
                       <td data-label={t("language")}>
                         {member.preferred_locale
@@ -280,7 +314,8 @@ export default function WorkspaceSettingsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </section>
       )}

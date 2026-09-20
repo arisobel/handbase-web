@@ -69,11 +69,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const setLocale = useCallback(
     async (locale: SupportedLocale) => {
+      const previous = session?.user.preferred_locale ?? session?.effective_locale ?? "en";
       applyLocale(locale);
       if (!session) return;
-      // Persist it so the choice follows the account to any other device.
-      const updated = await api.updateProfile({ preferred_locale: locale });
-      setSession((current) => (current ? { ...current, user: updated.user } : current));
+      try {
+        // Persist it so the choice follows the account to any other device.
+        const updated = await api.updateProfile({ preferred_locale: locale });
+        setSession((current) => (current ? { ...current, ...updated } : current));
+      } catch (error) {
+        // The account is authoritative: restore the last persisted value when
+        // the optimistic UI change cannot be saved.
+        applyLocale(previous);
+        throw error;
+      }
     },
     [session],
   );
