@@ -442,13 +442,20 @@ function Invoke-CapRoverDeploy {
     $hadToken = Test-Path Env:CAPROVER_APP_TOKEN
     $previousToken = if ($hadToken) { $env:CAPROVER_APP_TOKEN } else { $null }
 
+    # CapRover CLI 2.4.3 only recognizes paths beginning with "/" as absolute.
+    # On Windows it treats a drive-qualified path (C:\...) as relative and joins
+    # it to the working directory again. Packages are always created in dist/,
+    # so pass that repo-relative path to the CLI. Avoid Path.GetRelativePath:
+    # it is unavailable in the .NET runtime used by Windows PowerShell 5.1.
+    $tarPathForCli = Join-Path "dist" (Split-Path -Leaf $TarPath)
+
     try {
         $env:CAPROVER_APP_TOKEN = $Config["CAPROVER_APP_TOKEN"]
         Invoke-Native -Executable "caprover" -WorkingDirectory $RepoRoot -Arguments @(
             "deploy",
             "--caproverUrl", $Config["CAPROVER_URL"],
             "--caproverApp", $Config["CAPROVER_APP"],
-            "--tarFile", $TarPath
+            "--tarFile", $tarPathForCli
         ) -FailureMessage "CapRover deployment failed"
     }
     finally {
