@@ -24,6 +24,17 @@ def test_admin_lists_members(workspace, member_client):
     assert admin.get(f"/api/v1/workspaces/{workspace['id']}/members").status_code == 200
 
 
+def test_admin_adds_a_non_owner(workspace, member_client, make_user):
+    admin = member_client(workspace["id"], WorkspaceRole.ADMIN)
+    make_user(email="assistant@example.com")
+    response = admin.post(
+        f"/api/v1/workspaces/{workspace['id']}/members",
+        json={"email": "assistant@example.com", "role": "EDITOR"},
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["role"] == "EDITOR"
+
+
 @pytest.mark.parametrize("role", [WorkspaceRole.EDITOR, WorkspaceRole.VIEWER])
 def test_editor_and_viewer_cannot_manage_members(workspace, member_client, role):
     member = member_client(workspace["id"], role)

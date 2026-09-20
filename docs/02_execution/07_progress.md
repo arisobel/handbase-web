@@ -1,6 +1,6 @@
 # Progress
 
-> **Status:** Active | **Last updated:** 2026-09-18
+> **Status:** Active | **Last updated:** 2026-09-20
 
 ## Implemented — foundation seed
 
@@ -108,6 +108,53 @@ record → list → edit → delete.
   `postgres` and excluded from the default run:
   `04_technical`/`03_validation/POSTGRES_INTEGRATION.md`.
 
+## Implemented - phase 1.6, workspace administration
+
+### Membership API and authorization
+
+- Workspace-scoped list/add/update/remove endpoints under
+  `/api/v1/workspaces/{workspace_id}/members`; exact-email addition intentionally
+  finds existing accounts only and never enumerates the global user base.
+- New `manage_members` capability for OWNER and ADMIN. ADMIN cannot create,
+  alter or remove OWNER memberships; general workspace settings and deletion
+  remain OWNER-only.
+- Server-side last-owner invariant with PostgreSQL row locking: the final OWNER
+  cannot be demoted or removed. Duplicate memberships return `409`; non-members
+  retain the existing cross-workspace `404` concealment.
+- Responses expose only membership id, user id, email, display name, role,
+  preferred locale, active status and creation time.
+
+### Locale strategy
+
+- `backend/app/core/locales.py` is the backend source of truth for `en`, `he`
+  and `pt-BR`; arbitrary locale strings are rejected for users and workspaces.
+- Resolution is personal `User.preferred_locale`, active
+  `Workspace.default_locale`, then application `DEFAULT_LOCALE`.
+- Migration `20260920_04` makes the personal preference nullable without
+  changing existing values, enabling the documented workspace fallback.
+- Auth responses include `effective_locale`; authenticated language changes
+  remain immediate and persist through `PATCH /auth/me`.
+
+### Frontend
+
+- `/workspaces/:workspaceId/settings` provides General and Members sections.
+  OWNER edits workspace name/default language and manages all roles; ADMIN
+  manages non-owner memberships. EDITOR/VIEWER get no administration entry.
+- Member table shows name/email, role, personal language and active status;
+  email addresses use `<bdi dir="ltr">`. New layout uses logical CSS and has
+  EN/HE/PT-BR strings.
+- Add Member clearly states that only existing accounts are supported. No email
+  delivery or invitation link is claimed.
+
+### Validation
+
+- 83 fast tests pass: the previous 67 plus 16 workspace-administration and
+  locale tests.
+- Frontend TypeScript/Vite production build passes.
+- PostgreSQL integration execution was unavailable on the validation machine
+  because Docker was not installed; the suite now also asserts migration 04's
+  nullable locale column and remains required before deployment.
+
 ## Implemented - deploy hardening
 
 - `deploy/deploy.ps1` replaces `scripts/build-tar.ps1` and
@@ -132,7 +179,7 @@ record → list → edit → delete.
 
 ## Not implemented
 
-- Invitations or a membership-management API — roles are granted with the CLI.
+- Invitation tokens/acceptance and email delivery; adding existing accounts is implemented.
 - Field-level and record-level permissions, custom roles.
 - Rate limiting on `/auth/login`.
 - Password reset by email; self-service registration.

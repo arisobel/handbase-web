@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.api.deps import CurrentUser, require_workspace
 from backend.app.db.session import get_db
-from backend.app.models import WorkspaceMembership, WorkspaceRole
+from backend.app.models import WorkspaceMembership
 from backend.app.schemas.membership import MemberCreate, MemberRead, MemberUpdate
 from backend.app.schemas.workspace import WorkspaceCreate, WorkspaceRead, WorkspaceUpdate
 from backend.app.services import auth_service, authz, membership_service, metadata_service

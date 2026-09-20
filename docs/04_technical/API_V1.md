@@ -1,6 +1,6 @@
 # API v1 — Metadata Engine
 
-> **Status:** Active | **Last updated:** 2026-09-18
+> **Status:** Active | **Last updated:** 2026-09-20
 
 Base path: `/api/v1`. Interactive reference: `/docs`.
 
@@ -33,6 +33,21 @@ See [AUTHENTICATION.md](AUTHENTICATION.md).
 | `GET` | `/workspaces/{id}` | `read` | |
 | `PATCH` | `/workspaces/{id}` | `manage_workspace` | OWNER only |
 | `DELETE` | `/workspaces/{id}` | `manage_workspace` | OWNER only; cascades to tables, fields and records |
+
+## Workspace members
+
+All routes resolve `{workspace_id}` and the caller's membership server-side.
+
+| Method | Path | Requires | Notes |
+|---|---|---|---|
+| `GET` | `/workspaces/{id}/members` | `manage_members` | Safe identity and membership fields only |
+| `POST` | `/workspaces/{id}/members` | `manage_members` | `{email, role}`; existing accounts only |
+| `PATCH` | `/workspaces/{id}/members/{membership_id}` | `manage_members` | `{role}` |
+| `DELETE` | `/workspaces/{id}/members/{membership_id}` | `manage_members` | Last OWNER protected |
+
+An unknown email returns `404`; no invitation or email is generated. Duplicate
+membership returns `409`. ADMIN cannot manage OWNER memberships. Responses do
+not expose password hashes or refresh tokens.
 
 ## Tables
 

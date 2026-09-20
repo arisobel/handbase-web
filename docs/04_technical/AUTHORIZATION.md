@@ -1,6 +1,6 @@
 # Authorization
 
-> **Status:** Active | **Last updated:** 2026-09-18
+> **Status:** Active | **Last updated:** 2026-09-20
 
 Access is granted per workspace, through `WorkspaceMembership`. A user with no
 membership in a workspace cannot see it at all. There is nothing global: there
@@ -13,12 +13,18 @@ The complete model lives in one table — `services/authz.ROLE_CAPABILITIES`:
 
 | Capability | OWNER | ADMIN | EDITOR | VIEWER |
 |---|:---:|:---:|:---:|:---:|
+| `manage_members` — list/add/update/remove memberships | ✔ | ✔ | | |
 | `read` — tables, fields, records | ✔ | ✔ | ✔ | ✔ |
 | `write_records` — create/edit/delete records | ✔ | ✔ | ✔ | |
 | `change_structure` — create/edit/delete tables and fields | ✔ | ✔ | | |
 | `manage_workspace` — rename or delete the workspace | ✔ | | | |
 
 An unrecognized role string grants nothing rather than everything.
+
+`ADMIN` may manage `ADMIN`, `EDITOR` and `VIEWER` memberships, but cannot create,
+change or remove an `OWNER`. Only an `OWNER` may cross that privilege boundary,
+and even an owner cannot demote or remove the workspace's last owner. General
+workspace settings and workspace deletion remain OWNER-only.
 
 Creating a workspace is open to any authenticated user, and the creator becomes
 its OWNER. A workspace with no members is unreachable through the API by design
@@ -77,9 +83,14 @@ particular table or record id exists in somebody else's workspace. Once
 membership is established the workspace is known to the caller, so an
 insufficient role gets a truthful `403`.
 
-## Explicitly out of scope for this phase
+## Phase 1.6 update
+
+The membership-management API and UI are now implemented. Invitation-token and
+email delivery are not: adding a member currently requires an existing account.
+See [MEMBERSHIP_MANAGEMENT.md](MEMBERSHIP_MANAGEMENT.md).
+
+## Explicitly out of scope
 
 Field-level permissions, record-level/row policies, private notes, custom roles,
-permission matrices, invitations and a membership-management API. Roles are
-granted with the CLI (`python -m backend.app.cli grant`). These stay in the
-backlog.
+permission matrices and invitations remain in the backlog. The CLI role command
+remains available for operators, alongside the workspace-scoped API and UI.

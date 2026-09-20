@@ -1,7 +1,7 @@
 # HandBase Web — Documentation
 
 > **Project:** HandBase Web (working name)  
-> **Section:** `docs/` root index | **Status:** Active | **Last updated:** 2026-09-18
+> **Section:** `docs/` root index | **Status:** Active | **Last updated:** 2026-09-20
 
 ## Purpose
 
@@ -23,6 +23,8 @@ This tree is the operational memory of the project. It separates product definit
 - API reference: `04_technical/API_V1.md`
 - Authentication: `04_technical/AUTHENTICATION.md`
 - Authorization: `04_technical/AUTHORIZATION.md`
+- Membership management: `04_technical/MEMBERSHIP_MANAGEMENT.md`
+- Locale resolution: `04_technical/LOCALE_RESOLUTION.md`
 - First user: `04_technical/BOOTSTRAP_OWNER.md`
 - PostgreSQL integration tests: `03_validation/POSTGRES_INTEGRATION.md`
 - Decisions: `02_execution/08_decisions_log.md`

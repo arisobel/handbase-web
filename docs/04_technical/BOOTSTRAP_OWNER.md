@@ -63,6 +63,11 @@ prompt. Only memberships are added.
 
 ## Grant a role to somebody else
 
+After accounts exist, OWNER/ADMIN can manage workspace memberships in the
+application at `/workspaces/{workspace_id}/settings`. The API/UI adds existing
+accounts only; the operator command below remains useful for bootstrap and
+recovery.
+
 ```bash
 python -m backend.app.cli grant \
   --email teacher@example.com \

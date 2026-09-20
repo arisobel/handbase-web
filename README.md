@@ -83,7 +83,9 @@ Implemented end to end in EN/HE/PT-BR and RTL/LTR: workspace → user-defined
 table → field definitions → JSONB records, with create, list, edit and delete;
 plus authentication and per-workspace roles.
 
-Saved views, relations, invitations and field-level permissions are **not**
-implemented. Roles are granted with the CLI.
+Workspace settings and existing-user membership management are available in the
+application. Saved views, relations, invitation links/email delivery and
+field-level permissions are **not** implemented. Roles can also be granted with
+the operator CLI.
 
 See `docs/02_execution/07_progress.md` for exactly what exists today.

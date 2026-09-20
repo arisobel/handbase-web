@@ -1,6 +1,6 @@
 # Authentication
 
-> **Status:** Active | **Last updated:** 2026-09-18
+> **Status:** Active | **Last updated:** 2026-09-20
 
 ## Token model
 
@@ -99,6 +99,10 @@ a convenience, never the enforcement point.
 login and on session restore, and writes changes back through `PATCH /auth/me`,
 so the choice follows the account to another device rather than living in one
 browser's `localStorage`.
+
+Responses also include `effective_locale`. Resolution is personal preference,
+then the active workspace default when relevant, then `DEFAULT_LOCALE`. See
+[LOCALE_RESOLUTION.md](LOCALE_RESOLUTION.md).
 
 ## Frontend session lifecycle
 

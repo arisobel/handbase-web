@@ -1,6 +1,6 @@
 # Decisions Log
 
-> **Status:** Active | **Last updated:** 2026-09-18
+> **Status:** Active | **Last updated:** 2026-09-20
 
 - **DEC-001** Generic metadata engine: user tables are metadata, not physical SQL tables.
 - **DEC-002** PostgreSQL is the primary relational database.
@@ -66,3 +66,12 @@
   finished archive against a forbidden list independent of the one used to build
   it — deleting any package that fails. Tests and the frontend build run before
   packaging, so no unverified artifact can reach the server.
+- **DEC-020** Membership administration remains workspace-scoped and introduces
+  `manage_members` for OWNER and ADMIN. ADMIN cannot cross the OWNER boundary;
+  only OWNER can create/change/remove an OWNER, and the last OWNER is protected
+  by a server-side transactional invariant. Global user enumeration remains
+  forbidden; this phase adds existing accounts by exact email only.
+- **DEC-021** Personal language remains nullable `User.preferred_locale` and is
+  authoritative when present. `Workspace.default_locale` is fallback/default,
+  never an override; `DEFAULT_LOCALE` is last. Persisted/API values are limited
+  to `en`, `he` and `pt-BR` by the shared backend locale module.

@@ -1,6 +1,6 @@
 # Backlog
 
-> **Status:** Active | **Last updated:** 2026-09-18
+> **Status:** Active | **Last updated:** 2026-09-20
 
 ## Done
 
@@ -16,6 +16,8 @@
 - Docker Compose stack validated end to end.
 - Hardened CapRover packaging: single validated deploy script, app-scoped token,
   timestamped and audited tarballs (DEC-019).
+- Workspace administration: existing-user membership API/UI, `manage_members`,
+  last-owner safety and workspace/personal locale settings (DEC-020/021).
 
 See `07_progress.md` for exactly what each of these covers.
 
@@ -24,8 +26,8 @@ See `07_progress.md` for exactly what each of these covers.
 - Validate a real CapRover deploy. The packaging path is now proven locally
   (the tarball builds a working image); the remaining unknown is the server.
 - Rate limiting / lockout on `/api/v1/auth/login`.
-- Membership management over the API: invite a user, change a role, remove a
-  member. Today this is CLI-only.
+- Invitation tokens, copyable acceptance links and onboarding for email
+  addresses that do not yet have an account. Email delivery remains optional.
 - CRUD API for `view_definitions` (the model exists; no endpoints yet).
 - Run the fast and PostgreSQL suites in CI, and fail the build when the
   PostgreSQL suite skips.
