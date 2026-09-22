@@ -22,6 +22,10 @@ export default function TableSettingsPage() {
   const [busy, setBusy] = useState(false);
   const [tables, setTables] = useState<TableSummary[]>([]);
   const [targetTableId, setTargetTableId] = useState("");
+  // This hook must run on every render, including the initial loading render.
+  // Calling it only after `table` is loaded changes the hook order (#310).
+  const canBuild = table ? can(table.workspace_id, "change_structure") : false;
+  const [structureMode, setStructureMode] = useStructureMode(table?.workspace_id, canBuild);
 
   useEffect(() => {
     setError(null);
@@ -96,11 +100,6 @@ export default function TableSettingsPage() {
       </Layout>
     );
   }
-
-  // Reaching this route directly without the capability shows the structure
-  // read-only; the API would reject every write anyway.
-  const canBuild = can(table.workspace_id, "change_structure");
-  const [structureMode, setStructureMode] = useStructureMode(table.workspace_id, canBuild);
 
   return (
     <Layout
