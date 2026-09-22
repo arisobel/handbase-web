@@ -2,10 +2,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
-import { ApiError, FIELD_TYPES, type FieldType, type TableDetail } from "../api/types";
+import { ApiError, FIELD_TYPES, type FieldType, type TableDetail, type TableSummary } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { Empty, ErrorNote, Loading } from "../components/Feedback";
 import Layout from "../components/Layout";
+import { StructureModeToggle, useStructureMode } from "../components/StructureMode";
 
 /** The table builder: define the structure that every form and list derives from. */
 export default function TableSettingsPage() {
@@ -19,12 +20,15 @@ export default function TableSettingsPage() {
   const [required, setRequired] = useState(false);
   const [options, setOptions] = useState("");
   const [busy, setBusy] = useState(false);
+  const [tables, setTables] = useState<TableSummary[]>([]);
+  const [targetTableId, setTargetTableId] = useState("");
 
   useEffect(() => {
     setError(null);
     api
       .getTable(tableId)
-      .then(setTable)
+      .then((loaded) => { setTable(loaded); return api.listTables(loaded.workspace_id); })
+      .then(setTables)
       .catch((err: Error) => setError(err.message));
   }, [tableId]);
 
@@ -42,7 +46,7 @@ export default function TableSettingsPage() {
                 .map((option) => option.trim())
                 .filter(Boolean),
             }
-          : {};
+          : fieldType === "relation" ? { target_table_id: targetTableId } : {};
       const created = await api.createField({
         table_id: tableId,
         label: label.trim(),
@@ -56,6 +60,7 @@ export default function TableSettingsPage() {
       setLabel("");
       setRequired(false);
       setOptions("");
+      setTargetTableId("");
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError.issues?.[0]?.message ?? apiError.message);
@@ -95,6 +100,7 @@ export default function TableSettingsPage() {
   // Reaching this route directly without the capability shows the structure
   // read-only; the API would reject every write anyway.
   const canBuild = can(table.workspace_id, "change_structure");
+  const [structureMode, setStructureMode] = useStructureMode(table.workspace_id, canBuild);
 
   return (
     <Layout
@@ -103,7 +109,8 @@ export default function TableSettingsPage() {
       workspaceId={table.workspace_id}
       backTo={`/tables/${table.id}`}
     >
-      {canBuild && (
+      {canBuild && <StructureModeToggle enabled={structureMode} onChange={setStructureMode} />}
+      {canBuild && structureMode && (
       <section>
         <div className="sectionTitle">
           <h2>{t("addField")}</h2>
@@ -146,6 +153,15 @@ export default function TableSettingsPage() {
               />
             </div>
           )}
+          {fieldType === "relation" && (
+            <div className="formRow">
+              <label htmlFor="relation-target">{t("relationTarget")}</label>
+              <select id="relation-target" value={targetTableId} onChange={(event) => setTargetTableId(event.target.value)} required>
+                <option value="">{t("selectPlaceholder")}</option>
+                {tables.filter((candidate) => candidate.id !== table.id).map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
+              </select>
+            </div>
+          )}
 
           <div className="formRow inlineCheck">
             <label htmlFor="field-required">{t("required")}</label>
@@ -159,7 +175,7 @@ export default function TableSettingsPage() {
           </div>
 
           <div className="formActions">
-            <button className="primary" type="submit" disabled={busy}>
+            <button className="actionStructure" type="submit" disabled={busy}>
               {t("addField")}
             </button>
           </div>
@@ -169,7 +185,7 @@ export default function TableSettingsPage() {
       </section>
       )}
 
-      <section className="listPanel">
+      {structureMode && <section className="listPanel">
         <h2>{t("fields")}</h2>
         {table.fields.length === 0 && <Empty message={t("noFieldsYet")} />}
         {table.fields.map((field) => (
@@ -188,7 +204,7 @@ export default function TableSettingsPage() {
             )}
           </div>
         ))}
-      </section>
+      </section>}
     </Layout>
   );
 }

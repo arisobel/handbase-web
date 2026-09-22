@@ -42,6 +42,9 @@ class TableDefinition(Base):
     slug: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     icon: Mapped[str | None] = mapped_column(String(50))
+    # A stable, human-readable identity for records in this table.  It stores
+    # the field key (rather than a physical FK) because fields are metadata.
+    display_field_key: Mapped[str | None] = mapped_column(String(120))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     workspace: Mapped["Workspace"] = relationship(back_populates="tables")
     fields: Mapped[list["FieldDefinition"]] = relationship(

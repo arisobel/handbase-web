@@ -81,3 +81,12 @@
   revokes its prior pending invitation. Acceptance is transactional; existing
   accounts must authenticate as the invited email, while new accounts are
   created from the locked invitation email.
+- **DEC-023** A relation is a single-valued metadata-level foreign-key analogue:
+  UUID in JSONB, target table in field configuration, same workspace only, and
+  referenced-record deletion is RESTRICT. No physical per-user FK column is created.
+- **DEC-024** `TableDefinition.display_field_key` is the explicit human-readable
+  record identity, initialized from the first suitable text field for new tables.
+- **DEC-025** Structure Mode is browser-local UI state, never authorization;
+  the server's `change_structure` capability remains authoritative.
+- **DEC-026** Board/Kanban is a ViewDefinition concern, not a field type;
+  a future card move changes the source grouping field.

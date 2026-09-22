@@ -8,8 +8,9 @@ Repository seed, PostgreSQL, Docker/CapRover, React/FastAPI, EN/HE/PT-BR, metada
 ## Phase 1 — Core
 Workspace, table builder, fields, record CRUD, basic view, search.
 
-## Phase 2 — Saved views
-Filters, sorting, visible fields, saved lists.
+## Phase 2 — Relations, Structure Mode and saved views
+Single relations, display identity, structure editing separation, filters,
+sorting, visible fields and saved lists.
 
 ## Phase 3 — Relations
 Linked records, 1:N/N:N, family/sibling-style navigation.

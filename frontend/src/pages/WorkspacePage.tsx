@@ -6,6 +6,7 @@ import type { TableSummary, Workspace } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { Empty, ErrorNote, Loading } from "../components/Feedback";
 import Layout from "../components/Layout";
+import { StructureModeToggle, useStructureMode } from "../components/StructureMode";
 
 export default function WorkspacePage() {
   const { t } = useTranslation();
@@ -20,6 +21,7 @@ export default function WorkspacePage() {
 
   // Mirrors the server's CHANGE_STRUCTURE capability; the API enforces it.
   const canBuild = can(workspaceId, "change_structure");
+  const [structureMode, setStructureMode] = useStructureMode(workspaceId, canBuild);
   const role = membershipFor(workspaceId)?.role;
 
   useEffect(() => {
@@ -76,7 +78,8 @@ export default function WorkspacePage() {
             )}
           </div>
         )}
-        {canBuild && (
+        {canBuild && <StructureModeToggle enabled={structureMode} onChange={setStructureMode} />}
+        {canBuild && structureMode && (
           <>
             <div className="sectionTitle">
               <h2>{t("newTable")}</h2>
@@ -101,7 +104,7 @@ export default function WorkspacePage() {
                 />
               </div>
               <div className="formActions">
-                <button className="primary" type="submit" disabled={busy}>
+                <button className="actionStructure" type="submit" disabled={busy}>
                   {t("createTable")}
                 </button>
               </div>

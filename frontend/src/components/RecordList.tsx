@@ -59,7 +59,7 @@ export default function RecordList({ fields, records, canEdit = true }: RecordLi
             <tr key={record.id}>
               {columns.map((field, index) => (
                 <td key={field.id} data-label={field.label} className={index === 0 ? "primaryCell" : ""}>
-                  {formatValue(field, record.data[field.key], yes, no)}
+                  {field.field_type === "relation" ? record.relation_display[field.key] ?? "—" : formatValue(field, record.data[field.key], yes, no)}
                 </td>
               ))}
               <td className="actionsCell">

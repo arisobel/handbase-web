@@ -171,6 +171,8 @@ export const api = {
   getTable: (id: string) => request<TableDetail>(`/tables/${id}`),
   createTable: (payload: { workspace_id: string; name: string; description?: string | null }) =>
     request<TableSummary>("/tables", json("POST", payload)),
+  updateTable: (id: string, payload: { display_field_key?: string }) =>
+    request<TableSummary>(`/tables/${id}`, json("PATCH", payload)),
   deleteTable: (id: string) => request<void>(`/tables/${id}`, { method: "DELETE" }),
 
   createField: (payload: {

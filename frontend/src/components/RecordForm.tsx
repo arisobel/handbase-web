@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { FieldDefinition, FieldValue, SelectOption } from "../api/types";
+import { api } from "../api/client";
 
 /** Form state keeps everything as strings/booleans; conversion happens on submit. */
 type FormState = Record<string, string | boolean>;
@@ -81,6 +82,17 @@ export default function RecordForm({
 }: RecordFormProps) {
   const { t } = useTranslation();
   const [state, setState] = useState<FormState>(() => buildInitialState(fields, initialData));
+  const [relationOptions, setRelationOptions] = useState<Record<string, SelectOption[]>>({});
+  useEffect(() => {
+    for (const field of fields.filter((item) => item.field_type === "relation")) {
+      const targetId = field.config.target_table_id;
+      if (!targetId) continue;
+      void Promise.all([api.getTable(targetId), api.listRecords(targetId, 100)]).then(([target, page]) => {
+        const display = target.display_field_key;
+        setRelationOptions((current) => ({ ...current, [field.key]: page.items.map((record) => ({ value: record.id, label: display ? String(record.data[display] ?? "—") : "—" })) }));
+      });
+    }
+  }, [fields]);
 
   const setValue = (key: string, value: string | boolean) =>
     setState((current) => ({ ...current, [key]: value }));
@@ -146,6 +158,13 @@ export default function RecordForm({
                     {option.label ?? option.value}
                   </option>
                 ))}
+              </select>
+            )}
+
+            {field.field_type === "relation" && (
+              <select id={inputId} aria-describedby={describedBy} value={String(state[field.key] ?? "")} onChange={(event) => setValue(field.key, event.target.value)}>
+                <option value="">{t("selectPlaceholder")}</option>
+                {(relationOptions[field.key] ?? []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             )}
 

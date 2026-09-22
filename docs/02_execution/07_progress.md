@@ -238,11 +238,24 @@ record → list → edit → delete.
 - Field-level and record-level permissions, custom roles.
 - Rate limiting on `/auth/login`.
 - Password reset by email; self-service registration.
-- Relations between tables.
+- Board/saved-view API and UI (the ViewDefinition model remains foundation only).
 - Saved views / filter engine (`view_definitions` is still a model only).
 - Search, audit log, tasks, attachments, import/export.
 - Offline/PWA service worker.
 - Field `key` / `field_type` changes after creation (DEC-013).
+
+## Implemented - phase 2 foundation
+
+- Data Mode is default; OWNER/ADMIN-only Structure Mode is browser-local per
+  workspace and hides table/field structural UI unless active.
+- `relation` is a single-value field with `config.target_table_id`. It stores a
+  related UUID in JSONB, validates target/existence, permits same-workspace
+  targets and enforces RESTRICT deletion.
+- Tables have `display_field_key`; newly created tables initialize it from their
+  first text/long-text field. Relation lists resolve labels in bounded batches;
+  forms load up to 100 target choices.
+- Migration `20260922_06` additively adds `display_field_key`. Board was not
+  implemented because ViewDefinition has no API; its contract is documented.
 
 ## Verification performed on 2026-09-18
 

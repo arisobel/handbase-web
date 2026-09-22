@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, selectinload
 from backend.app.models import FieldDefinition, Record, TableDefinition, Workspace
 from backend.app.core.locales import validate_locale
 from backend.app.services.errors import ConflictError, NotFoundError, ValidationError, ValidationIssue
-from backend.app.services.field_types import SINGLE_SELECT, SUPPORTED_FIELD_TYPES, select_options
+from backend.app.services.field_types import RELATION, SINGLE_SELECT, SUPPORTED_FIELD_TYPES, select_options
 from backend.app.services.identifiers import unique_identifier
 
 # --------------------------------------------------------------------------- #
@@ -123,6 +123,7 @@ def update_table(
     name: str | None = None,
     description: str | None = None,
     icon: str | None = None,
+    display_field_key: str | None = None,
 ) -> TableDefinition:
     table = get_table(db, table_id)
     if name is not None:
@@ -132,6 +133,12 @@ def update_table(
         table.description = description
     if icon is not None:
         table.icon = icon
+    if display_field_key is not None:
+        if display_field_key not in {field.key for field in list_fields(db, table_id)}:
+            raise ValidationError("Display field must belong to this table.", [ValidationIssue(
+                field="display_field_key", code="invalid_display_field", message="Choose a field from this table."
+            )])
+        table.display_field_key = display_field_key
     db.commit()
     db.refresh(table)
     return table
@@ -176,7 +183,8 @@ def create_field(
     config: dict | None = None,
 ) -> FieldDefinition:
     get_table(db, table_id)
-    _validate_field_definition(field_type, config)
+    table = get_table(db, table_id)
+    _validate_field_definition(db, table, field_type, config)
 
     existing = list_fields(db, table_id)
     taken = {f.key for f in existing}
@@ -197,6 +205,10 @@ def create_field(
         config=config or {},
     )
     db.add(field)
+    # New tables acquire an explicit identity as soon as their first suitable
+    # field is defined. Existing identities are never changed implicitly.
+    if table.display_field_key is None and field_type in ("text", "long_text"):
+        table.display_field_key = resolved_key
     db.commit()
     db.refresh(field)
     return field
@@ -219,7 +231,7 @@ def update_field(
     """
     field = get_field(db, field_id)
     if config is not None:
-        _validate_field_definition(field.field_type, config)
+        _validate_field_definition(db, get_table(db, field.table_id), field.field_type, config)
         field.config = config
     if label is not None:
         field.label = label.strip()
@@ -236,6 +248,7 @@ def delete_field(db: Session, field_id: uuid.UUID) -> None:
     """Remove a field definition and drop its key from existing records."""
     field = get_field(db, field_id)
     table_id, key = field.table_id, field.key
+    table = get_table(db, table_id)
     db.delete(field)
     db.flush()
 
@@ -245,10 +258,14 @@ def delete_field(db: Session, field_id: uuid.UUID) -> None:
             remaining = dict(record.data)
             remaining.pop(key, None)
             record.data = remaining
+    if table.display_field_key == key:
+        table.display_field_key = None
     db.commit()
 
 
-def _validate_field_definition(field_type: str, config: dict | None) -> None:
+def _validate_field_definition(
+    db: Session, source_table: TableDefinition, field_type: str, config: dict | None
+) -> None:
     if field_type not in SUPPORTED_FIELD_TYPES:
         raise ValidationError(
             f"Field type '{field_type}' is not supported yet.",
@@ -271,3 +288,21 @@ def _validate_field_definition(field_type: str, config: dict | None) -> None:
                 )
             ],
         )
+    if field_type == RELATION:
+        raw_target = (config or {}).get("target_table_id")
+        try:
+            target_id = uuid.UUID(str(raw_target))
+        except (ValueError, TypeError, AttributeError):
+            raise ValidationError("A relation field needs a target table.", [ValidationIssue(
+                field="config.target_table_id", code="missing_target_table", message="Provide a target table UUID."
+            )])
+        try:
+            target = get_table(db, target_id)
+        except NotFoundError:
+            raise ValidationError("Relation target table was not found.", [ValidationIssue(
+                field="config.target_table_id", code="invalid_target_table", message="Choose an existing target table."
+            )])
+        if target.workspace_id != source_table.workspace_id:
+            raise ValidationError("Relation target must be in the same workspace.", [ValidationIssue(
+                field="config.target_table_id", code="cross_workspace_relation", message="Relation targets must belong to the same workspace."
+            )])

@@ -9,13 +9,13 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from backend.app.models import FieldDefinition, Record
-from backend.app.services.errors import NotFoundError, ValidationError, ValidationIssue
-from backend.app.services.field_types import coerce_value, is_empty
+from backend.app.models import FieldDefinition, Record, TableDefinition
+from backend.app.services.errors import ConflictError, NotFoundError, ValidationError, ValidationIssue
+from backend.app.services.field_types import RELATION, coerce_value, is_empty
 from backend.app.services.metadata_service import get_table, list_fields
 
 
-def validate_payload(fields: list[FieldDefinition], payload: dict) -> dict:
+def validate_payload(db: Session, fields: list[FieldDefinition], payload: dict) -> dict:
     """Validate ``payload`` against ``fields`` and return the stored form.
 
     Rules:
@@ -61,6 +61,13 @@ def validate_payload(fields: list[FieldDefinition], payload: dict) -> dict:
             continue
 
         normalized, issue = coerce_value(key, field.label, field.field_type, field.config, value)
+        if issue is None and field.field_type == RELATION:
+            target_id = uuid.UUID(str(field.config.get("target_table_id")))
+            related = db.get(Record, uuid.UUID(str(normalized)))
+            if related is None:
+                issue = ValidationIssue(field=key, code="missing_related_record", message=f"Related record for '{field.label}' was not found.")
+            elif related.table_id != target_id:
+                issue = ValidationIssue(field=key, code="wrong_relation_target", message=f"Related record for '{field.label}' belongs to a different table.")
         if issue is not None:
             issues.append(issue)
         else:
@@ -96,7 +103,7 @@ def get_record(db: Session, record_id: uuid.UUID) -> Record:
 
 def create_record(db: Session, *, table_id: uuid.UUID, data: dict) -> Record:
     fields = list_fields(db, table_id)
-    record = Record(table_id=table_id, data=validate_payload(fields, data))
+    record = Record(table_id=table_id, data=validate_payload(db, fields, data))
     db.add(record)
     db.commit()
     db.refresh(record)
@@ -107,7 +114,7 @@ def replace_record(db: Session, record_id: uuid.UUID, *, data: dict) -> Record:
     """Full replacement: ``data`` becomes the record, validated as on create."""
     record = get_record(db, record_id)
     fields = list_fields(db, record.table_id)
-    record.data = validate_payload(fields, data)
+    record.data = validate_payload(db, fields, data)
     db.commit()
     db.refresh(record)
     return record
@@ -128,12 +135,49 @@ def patch_record(db: Session, record_id: uuid.UUID, *, data: dict) -> Record:
     record = get_record(db, record_id)
     fields = list_fields(db, record.table_id)
     merged = {**record.data, **data}
-    record.data = validate_payload(fields, merged)
+    record.data = validate_payload(db, fields, merged)
     db.commit()
     db.refresh(record)
     return record
 
 
 def delete_record(db: Session, record_id: uuid.UUID) -> None:
-    db.delete(get_record(db, record_id))
+    record = get_record(db, record_id)
+    # JSONB does not give metadata-defined relationships real FK constraints,
+    # so enforce the MVP's RESTRICT policy before deleting the target record.
+    candidate_fields = db.scalars(select(FieldDefinition).where(FieldDefinition.field_type == RELATION)).all()
+    for field in candidate_fields:
+        if str(field.config.get("target_table_id")) != str(record.table_id):
+            continue
+        for dependent in db.scalars(select(Record).where(Record.table_id == field.table_id)):
+            if str(dependent.data.get(field.key)) == str(record.id):
+                raise ConflictError("This record is still referenced by another record.")
+    db.delete(record)
     db.commit()
+
+
+def relation_display_values(db: Session, fields: list[FieldDefinition], records: list[Record]) -> dict[uuid.UUID, dict[str, str]]:
+    """Resolve visible relation labels in bounded batches, avoiding N+1 reads."""
+    relation_fields = [field for field in fields if field.field_type == RELATION]
+    ids_by_target: dict[uuid.UUID, set[uuid.UUID]] = {}
+    for field in relation_fields:
+        target_id = uuid.UUID(str(field.config["target_table_id"]))
+        for record in records:
+            raw = record.data.get(field.key)
+            if raw:
+                ids_by_target.setdefault(target_id, set()).add(uuid.UUID(str(raw)))
+    related_by_id: dict[uuid.UUID, Record] = {}
+    for target_id, ids in ids_by_target.items():
+        related_by_id.update({item.id: item for item in db.scalars(select(Record).where(Record.table_id == target_id, Record.id.in_(ids)))})
+    tables = {table.id: table for table in db.scalars(select(TableDefinition).where(TableDefinition.id.in_(ids_by_target))) }
+    result: dict[uuid.UUID, dict[str, str]] = {}
+    for record in records:
+        labels: dict[str, str] = {}
+        for field in relation_fields:
+            raw = record.data.get(field.key)
+            related = related_by_id.get(uuid.UUID(str(raw))) if raw else None
+            if related:
+                display_key = tables[related.table_id].display_field_key
+                labels[field.key] = str(related.data.get(display_key, "—")) if display_key else "—"
+        result[record.id] = labels
+    return result

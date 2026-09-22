@@ -7,6 +7,7 @@ import { useAuth } from "../auth/AuthContext";
 import { Empty, ErrorNote, Loading } from "../components/Feedback";
 import Layout from "../components/Layout";
 import RecordList from "../components/RecordList";
+import { StructureModeToggle, useStructureMode } from "../components/StructureMode";
 
 export default function TableRecordsPage() {
   const { t } = useTranslation();
@@ -16,6 +17,8 @@ export default function TableRecordsPage() {
   const [records, setRecords] = useState<RecordRow[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const canBuild = table ? can(table.workspace_id, "change_structure") : false;
+  const [structureMode, setStructureMode] = useStructureMode(table?.workspace_id, canBuild);
 
   useEffect(() => {
     setError(null);
@@ -36,11 +39,12 @@ export default function TableRecordsPage() {
           {t("newRecord")}
         </Link>
       )}
-      {can(table.workspace_id, "change_structure") && (
+      {canBuild && structureMode && (
         <Link className="secondary buttonLink" to={`/tables/${table.id}/settings`}>
           {t("tableStructure")}
         </Link>
       )}
+      {canBuild && <StructureModeToggle enabled={structureMode} onChange={setStructureMode} />}
     </>
   );
 

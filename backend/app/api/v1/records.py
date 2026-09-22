@@ -11,7 +11,7 @@ from backend.app.api.deps import (
 )
 from backend.app.db.session import get_db
 from backend.app.schemas.record import RecordCreate, RecordPage, RecordRead, RecordWrite
-from backend.app.services import authz, record_service
+from backend.app.services import authz, metadata_service, record_service
 from backend.app.services.authz import Capability
 
 router = APIRouter(prefix="/records", tags=["records"])
@@ -29,8 +29,9 @@ def list_records(
     db: Session = Depends(get_db),
 ):
     items, total = record_service.list_records(db, table_id, limit=limit, offset=offset)
+    relation_display = record_service.relation_display_values(db, metadata_service.list_fields(db, table_id), items)
     return RecordPage(
-        items=[RecordRead.model_validate(item) for item in items],
+        items=[RecordRead.model_validate(item).model_copy(update={"relation_display": relation_display[item.id]}) for item in items],
         total=total,
         limit=limit,
         offset=offset,
@@ -51,7 +52,9 @@ def create_record(payload: RecordCreate, user: CurrentUser, db: Session = Depend
     dependencies=[Depends(require_record(Capability.READ))],
 )
 def get_record(record_id: uuid.UUID, db: Session = Depends(get_db)):
-    return record_service.get_record(db, record_id)
+    record = record_service.get_record(db, record_id)
+    fields = metadata_service.list_fields(db, record.table_id)
+    return RecordRead.model_validate(record).model_copy(update={"relation_display": record_service.relation_display_values(db, fields, [record])[record.id]})
 
 
 @router.put(

@@ -17,6 +17,7 @@ class TableUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = None
     icon: str | None = Field(default=None, max_length=50)
+    display_field_key: str | None = Field(default=None, min_length=1, max_length=120)
 
 
 class TableRead(BaseModel):
@@ -28,6 +29,7 @@ class TableRead(BaseModel):
     slug: str
     description: str | None = None
     icon: str | None = None
+    display_field_key: str | None = None
     created_at: datetime | None = None
 
 

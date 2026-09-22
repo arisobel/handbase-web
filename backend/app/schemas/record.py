@@ -21,6 +21,7 @@ class RecordRead(BaseModel):
     id: uuid.UUID
     table_id: uuid.UUID
     data: dict
+    relation_display: dict[str, str] = Field(default_factory=dict)
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

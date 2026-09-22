@@ -14,6 +14,7 @@ NUMBER = "number"
 BOOLEAN = "boolean"
 DATE = "date"
 SINGLE_SELECT = "single_select"
+RELATION = "relation"
 
 #: Types the metadata engine accepts today.
 SUPPORTED_FIELD_TYPES: tuple[str, ...] = (
@@ -23,6 +24,7 @@ SUPPORTED_FIELD_TYPES: tuple[str, ...] = (
     BOOLEAN,
     DATE,
     SINGLE_SELECT,
+    RELATION,
 )
 
 #: Types reserved by the domain model but not implemented yet. Listed so the
@@ -33,7 +35,6 @@ PLANNED_FIELD_TYPES: tuple[str, ...] = (
     "email",
     "phone",
     "user",
-    "relation",
     "formula",
 )
 
@@ -114,6 +115,15 @@ def coerce_value(key: str, label: str, field_type: str, config: dict | None, val
                 message=f"Field '{label}' must be one of: {allowed}.",
             )
         return value, None
+
+    if field_type == RELATION:
+        if not isinstance(value, str):
+            return None, _type_issue(key, label, field_type, "a record UUID")
+        try:
+            import uuid
+            return str(uuid.UUID(value)), None
+        except ValueError:
+            return None, _type_issue(key, label, field_type, "a record UUID")
 
     return None, ValidationIssue(
         field=key,

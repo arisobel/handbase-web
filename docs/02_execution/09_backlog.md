@@ -37,7 +37,11 @@ See `07_progress.md` for exactly what each of these covers.
 - Optional invitation email delivery (SMTP/provider integration). Copyable
   invitation links and onboarding are implemented; no email is sent by design.
 - Filter expressions and saved views.
-- Relations.
+- Relation follow-ups: target search/autocomplete, multi-relation, configurable
+  deletion policies and explicit display-field editing for legacy tables.
+- Saved Board/Kanban Views: ViewDefinition CRUD, `view_type=board`,
+  `group_by_field`, relation/single-select grouping, drag/drop source updates,
+  column ordering, mobile horizontal navigation and RTL ordering.
 - Global search.
 - Audit log — who changed which record, now that there is a "who".
 - Private/shared notes.

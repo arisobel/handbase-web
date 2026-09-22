@@ -8,6 +8,7 @@ const fieldTypesEn = {
   boolean: "Yes / No",
   date: "Date",
   single_select: "Single select",
+  relation: "Relation",
 };
 
 const fieldTypesHe = {
@@ -17,6 +18,7 @@ const fieldTypesHe = {
   boolean: "כן / לא",
   date: "תאריך",
   single_select: "בחירה יחידה",
+  relation: "קשר",
 };
 
 const fieldTypesPt = {
@@ -26,6 +28,7 @@ const fieldTypesPt = {
   boolean: "Sim / Não",
   date: "Data",
   single_select: "Seleção única",
+  relation: "Relação",
 };
 
 const rolesEn = { OWNER: "Owner", ADMIN: "Admin", EDITOR: "Editor", VIEWER: "Viewer" };
@@ -66,6 +69,9 @@ const resources = {
       tableDescription: "Description (optional)",
       noTablesYet: "No tables in this workspace yet.",
       tableStructure: "Fields and structure",
+      structureModeOn: "Structure Mode",
+      structureModeOff: "Data Mode",
+      relationTarget: "Related table",
       fields: "Fields",
       addField: "Add field",
       fieldLabel: "Label",
@@ -184,6 +190,9 @@ const resources = {
       tableDescription: "תיאור (לא חובה)",
       noTablesYet: "אין עדיין טבלאות בסביבת העבודה הזו.",
       tableStructure: "שדות ומבנה",
+      structureModeOn: "מצב מבנה",
+      structureModeOff: "מצב נתונים",
+      relationTarget: "טבלה קשורה",
       fields: "שדות",
       addField: "הוספת שדה",
       fieldLabel: "תווית",
@@ -302,6 +311,9 @@ const resources = {
       tableDescription: "Descrição (opcional)",
       noTablesYet: "Nenhuma tabela neste workspace ainda.",
       tableStructure: "Campos e estrutura",
+      structureModeOn: "Modo de estrutura",
+      structureModeOff: "Modo de dados",
+      relationTarget: "Tabela relacionada",
       fields: "Campos",
       addField: "Adicionar campo",
       fieldLabel: "Rótulo",

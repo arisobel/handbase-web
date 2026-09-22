@@ -116,8 +116,8 @@ def test_duplicate_explicit_field_key_conflicts(client, students_table):
 
 def test_field_types_catalog_separates_supported_from_planned(client):
     body = client.get("/api/v1/field-types").json()
-    assert body["supported"] == ["text", "long_text", "number", "boolean", "date", "single_select"]
-    assert "relation" in body["planned"]
+    assert body["supported"] == ["text", "long_text", "number", "boolean", "date", "single_select", "relation"]
+    assert "relation" not in body["planned"]
     assert not set(body["supported"]) & set(body["planned"])
 
 

@@ -57,7 +57,8 @@ def get_table(table_id: uuid.UUID, db: Session = Depends(get_db)):
 )
 def update_table(table_id: uuid.UUID, payload: TableUpdate, db: Session = Depends(get_db)):
     return metadata_service.update_table(
-        db, table_id, name=payload.name, description=payload.description, icon=payload.icon
+        db, table_id, name=payload.name, description=payload.description, icon=payload.icon,
+        display_field_key=payload.display_field_key,
     )
 
 

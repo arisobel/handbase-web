@@ -6,6 +6,7 @@ export const FIELD_TYPES = [
   "boolean",
   "date",
   "single_select",
+  "relation",
 ] as const;
 
 export type FieldType = (typeof FIELD_TYPES)[number];
@@ -20,6 +21,7 @@ export interface SelectOption {
 
 export interface FieldConfig {
   options?: (string | SelectOption)[];
+  target_table_id?: string;
 }
 
 /** Capability names returned by the API; mirrors `services/authz.Capability`. */
@@ -111,6 +113,7 @@ export interface TableSummary {
   slug: string;
   description?: string | null;
   icon?: string | null;
+  display_field_key?: string | null;
   created_at?: string | null;
 }
 
@@ -133,6 +136,7 @@ export interface RecordRow {
   id: string;
   table_id: string;
   data: Record<string, FieldValue>;
+  relation_display: Record<string, string>;
   created_at?: string | null;
   updated_at?: string | null;
 }
