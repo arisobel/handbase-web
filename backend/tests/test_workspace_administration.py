@@ -2,7 +2,9 @@
 import pytest
 
 from backend.app.core.locales import resolve_locale
+from backend.app.core.security import verify_password
 from backend.app.models import WorkspaceRole
+from backend.app.services import auth_service
 
 
 def _members(client, workspace_id: str) -> list[dict]:
@@ -55,6 +57,32 @@ def test_owner_adds_existing_user(client, workspace, make_user):
     assert body["display_name"] == "Teacher"
     assert body["role"] == "EDITOR"
     assert body["preferred_locale"] == "he"
+
+
+def test_removed_global_user_can_be_added_again_without_changing_account(client, workspace, make_user):
+    user = make_user(
+        email="returning@example.com", locale="pt-BR", display_name="Returning User"
+    )
+    original_hash = user.password_hash
+    added = client.post(
+        f"/api/v1/workspaces/{workspace['id']}/members",
+        json={"email": "returning@example.com", "role": "VIEWER"},
+    )
+    assert added.status_code == 201, added.text
+    assert client.delete(
+        f"/api/v1/workspaces/{workspace['id']}/members/{added.json()['id']}"
+    ).status_code == 204
+
+    readded = client.post(
+        f"/api/v1/workspaces/{workspace['id']}/members",
+        json={"email": "  RETURNING@EXAMPLE.COM  ", "role": "EDITOR"},
+    )
+    assert readded.status_code == 201, readded.text
+    assert readded.json()["user_id"] == str(user.id)
+    assert readded.json()["display_name"] == "Returning User"
+    assert readded.json()["preferred_locale"] == "pt-BR"
+    assert user.password_hash == original_hash
+    assert user.must_change_password is False
 
 
 def test_unknown_user_is_not_implicitly_invited(client, workspace):
@@ -120,6 +148,58 @@ def test_admin_cannot_cross_owner_boundary(workspace, member_client, make_user, 
     path = f"/api/v1/workspaces/{workspace['id']}/members/{owner['id']}"
     assert admin.patch(path, json={"role": "VIEWER"}).status_code == 403
     assert admin.delete(path).status_code == 403
+
+
+def test_reset_member_password_hashes_password_requires_change_and_revokes_sessions(
+    client, workspace, make_user, db_session
+):
+    user = make_user(email="reset-target@example.com")
+    member = client.post(
+        f"/api/v1/workspaces/{workspace['id']}/members",
+        json={"email": user.email, "role": "EDITOR"},
+    ).json()
+    _access, _ttl, refresh_token = auth_service.issue_session(db_session, user)
+
+    response = client.post(
+        f"/api/v1/workspaces/{workspace['id']}/members/{member['id']}/reset-password"
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["user_id"] == str(user.id)
+    assert body["email"] == user.email
+    assert body["temporary_password"]
+    assert body["temporary_password"] != user.password_hash
+    assert verify_password(user.password_hash, body["temporary_password"])
+    assert user.must_change_password is True
+    with pytest.raises(auth_service.AuthenticationError):
+        auth_service.rotate_session(db_session, refresh_token)
+
+
+def test_owner_can_reset_the_last_owner_password(client, workspace):
+    owner = next(member for member in _members(client, workspace["id"]) if member["role"] == "OWNER")
+    response = client.post(
+        f"/api/v1/workspaces/{workspace['id']}/members/{owner['id']}/reset-password"
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["temporary_password"]
+
+
+def test_admin_cannot_reset_an_owner_password(workspace, member_client, client):
+    admin = member_client(workspace["id"], WorkspaceRole.ADMIN)
+    owner = next(member for member in _members(client, workspace["id"]) if member["role"] == "OWNER")
+    response = admin.post(
+        f"/api/v1/workspaces/{workspace['id']}/members/{owner['id']}/reset-password"
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.parametrize("role", [WorkspaceRole.EDITOR, WorkspaceRole.VIEWER])
+def test_non_managers_cannot_reset_member_password(workspace, member_client, client, role):
+    member = next(item for item in _members(client, workspace["id"]) if item["role"] == "OWNER")
+    actor = member_client(workspace["id"], role)
+    assert actor.post(
+        f"/api/v1/workspaces/{workspace['id']}/members/{member['id']}/reset-password"
+    ).status_code == 403
 
 
 def test_cross_workspace_membership_access_returns_404(workspace, other_workspace):

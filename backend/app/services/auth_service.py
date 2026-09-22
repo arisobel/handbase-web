@@ -141,6 +141,23 @@ def set_password(db: Session, user: User, password: str) -> User:
     return user
 
 
+def reset_temporary_password(db: Session, user: User, temporary_password: str) -> User:
+    """Replace a credential with an admin-issued one-time password.
+
+    The clear-text password is intentionally only an argument to this function;
+    the database receives its Argon2 hash. The new credential and refresh
+    session revocations are committed together.
+    """
+    _validate_password(temporary_password)
+    user.password_hash = hash_password(temporary_password)
+    user.must_change_password = True
+    user.password_changed_at = datetime.now(UTC)
+    revoke_all_sessions(db, user.id, commit=False)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 # --------------------------------------------------------------------------- #
 # Sessions
 # --------------------------------------------------------------------------- #
@@ -231,7 +248,7 @@ def revoke_session(db: Session, refresh_token: str | None) -> None:
         db.commit()
 
 
-def revoke_all_sessions(db: Session, user_id: uuid.UUID) -> int:
+def revoke_all_sessions(db: Session, user_id: uuid.UUID, *, commit: bool = True) -> int:
     """Revoke every live session of a user. Used by password changes."""
     count = 0
     for stored in db.scalars(
@@ -239,7 +256,8 @@ def revoke_all_sessions(db: Session, user_id: uuid.UUID) -> int:
     ):
         stored.revoked_at = datetime.now(UTC)
         count += 1
-    db.commit()
+    if commit:
+        db.commit()
     return count
 
 

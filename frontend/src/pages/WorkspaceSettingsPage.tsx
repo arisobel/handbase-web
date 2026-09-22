@@ -35,7 +35,7 @@ export default function WorkspaceSettingsPage() {
   const [defaultLocale, setDefaultLocale] = useState<SupportedLocale>("en");
   const [email, setEmail] = useState("");
   const [newRole, setNewRole] = useState<WorkspaceRole>("VIEWER");
-  const [onboardingMode, setOnboardingMode] = useState<"existing" | "invite" | "local">("existing");
+  const [onboardingMode, setOnboardingMode] = useState<"existing" | "invite" | "local">("local");
   const [verificationMode, setVerificationMode] = useState<"LINK_ONLY" | "LINK_AND_PIN">("LINK_ONLY");
   const [displayName, setDisplayName] = useState("");
   const [localLocale, setLocalLocale] = useState<SupportedLocale>("en");
@@ -122,18 +122,7 @@ export default function WorkspaceSettingsPage() {
       setNewRole("VIEWER");
       setNotice(t("memberAdded"));
     } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        try {
-          const invitation = await api.createInvitation(workspaceId, { email: email.trim(), role: newRole, verification_mode: verificationMode });
-          setInvitations((current) => [invitation, ...(current ?? [])]);
-          setCreatedInvitation(invitation);
-          setEmail("");
-          setNewRole("VIEWER");
-          setNotice(t("invitationCreated"));
-        } catch (inviteError) {
-          setError(presentError(inviteError, "add"));
-        }
-      } else setError(presentError(err, "add"));
+      setError(presentError(err, "add"));
     } finally {
       setBusy(false);
     }
@@ -174,6 +163,22 @@ export default function WorkspaceSettingsPage() {
     }
   };
 
+  const resetMemberPassword = async (member: WorkspaceMember) => {
+    if (!window.confirm(t("confirmResetPassword", { name: member.display_name }))) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const reset = await api.resetMemberPassword(workspaceId, member.id);
+      setTemporaryPassword(reset.temporary_password);
+      setNotice(t("passwordReset"));
+    } catch (err) {
+      setError(presentError(err, "role"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const copyInvitation = async () => {
     if (!createdInvitation) return;
     try {
@@ -198,6 +203,8 @@ export default function WorkspaceSettingsPage() {
     canManageMembers
     && (actorRole === "OWNER" || member.role !== "OWNER")
     && !(member.role === "OWNER" && ownerCount <= 1);
+  const canResetMemberPassword = (member: WorkspaceMember) =>
+    canManageMembers && (actorRole === "OWNER" || member.role !== "OWNER");
   const canManageInvitation = (invitation: WorkspaceInvitation) =>
     canManageMembers && (actorRole === "OWNER" || invitation.role !== "OWNER");
 
@@ -277,7 +284,7 @@ export default function WorkspaceSettingsPage() {
         <section id="members" className="settingsSection">
           <div className="sectionTitle"><h2>{t("members")}</h2></div>
           <form className="memberAddForm settingsPanel" onSubmit={addMember}>
-            <div className="formRow"><label htmlFor="onboarding-mode">{t("onboardingMode")}</label><select id="onboarding-mode" value={onboardingMode} onChange={(event) => setOnboardingMode(event.target.value as "existing" | "invite" | "local")}><option value="existing">{t("existingUser")}</option><option value="invite">{t("inviteUser")}</option><option value="local">{t("createUser")}</option></select></div>
+            <div className="formRow"><label htmlFor="onboarding-mode">{t("onboardingMode")}</label><select id="onboarding-mode" value={onboardingMode} onChange={(event) => setOnboardingMode(event.target.value as "existing" | "invite" | "local")}><option value="local">{t("createUser")}</option><option value="existing">{t("existingUser")}</option><option value="invite">{t("inviteUser")}</option></select></div>
             {onboardingMode === "local" && <><div className="formRow"><label htmlFor="local-name">{t("displayName")}</label><input id="local-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required /></div><div className="formRow"><label htmlFor="local-locale">{t("personalLanguage")}</label><select id="local-locale" value={localLocale} onChange={(event) => setLocalLocale(event.target.value as SupportedLocale)}>{LOCALES.map((locale) => <option key={locale} value={locale}>{t(`locales.${locale}`)}</option>)}</select></div></>}
             <div className="formRow">
               <label htmlFor="member-email">{t("email")}</label>
@@ -366,15 +373,24 @@ export default function WorkspaceSettingsPage() {
                         </span>
                       </td>
                       <td className="actionsCell" data-label={t("actions")}>
+                        {canResetMemberPassword(member) && (
+                          <>
+                            <button type="button" className="secondary" disabled={busy} onClick={() => void resetMemberPassword(member)}>
+                              {t("resetPassword")}
+                            </button>
+                          </>
+                        )}
                         {canEditMember(member) && (
-                          <button
-                            type="button"
-                            className="danger"
-                            disabled={busy}
-                            onClick={() => void removeMember(member)}
-                          >
-                            {t("remove")}
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              className="danger"
+                              disabled={busy}
+                              onClick={() => void removeMember(member)}
+                            >
+                              {t("remove")}
+                            </button>
+                          </>
                         )}
                       </td>
                     </tr>

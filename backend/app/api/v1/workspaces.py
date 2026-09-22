@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from backend.app.api.deps import CurrentUser, require_workspace
 from backend.app.db.session import get_db
 from backend.app.models import WorkspaceMembership
-from backend.app.schemas.membership import MemberCreate, MemberRead, MemberUpdate
+from backend.app.schemas.membership import MemberCreate, MemberRead, MemberUpdate, TemporaryPasswordReset
 from backend.app.schemas.workspace import WorkspaceCreate, WorkspaceRead, WorkspaceUpdate
 from backend.app.schemas.local_user import LocalUserCreate, LocalUserCreated
 from backend.app.core.security import generate_temporary_password
@@ -94,6 +94,29 @@ def create_local_user(
     membership = auth_service.grant_membership(db, workspace_id=workspace_id, user_id=user.id, role=payload.role)
     return LocalUserCreated(id=str(user.id), email=user.email, display_name=user.display_name,
         role=membership.role, temporary_password=temporary_password)
+
+
+@router.post(
+    "/{workspace_id}/members/{membership_id}/reset-password",
+    response_model=TemporaryPasswordReset,
+)
+def reset_member_password(
+    workspace_id: uuid.UUID,
+    membership_id: uuid.UUID,
+    actor: Annotated[
+        WorkspaceMembership, Depends(require_workspace(Capability.MANAGE_MEMBERS))
+    ],
+    db: Session = Depends(get_db),
+):
+    """Issue a one-time password without changing global profile data."""
+    membership = membership_service.get_workspace_membership(db, workspace_id, membership_id)
+    authz.authorize_member_role_change(actor, current_role=authz.role_of(membership))
+    user = auth_service.get_user(db, membership.user_id)
+    temporary_password = generate_temporary_password()
+    auth_service.reset_temporary_password(db, user, temporary_password)
+    return TemporaryPasswordReset(
+        user_id=user.id, email=user.email, temporary_password=temporary_password
+    )
 
 
 @router.patch("/{workspace_id}/members/{membership_id}", response_model=MemberRead)

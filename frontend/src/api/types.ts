@@ -119,6 +119,12 @@ export interface LocalUserCreated {
   temporary_password: string;
 }
 
+export interface TemporaryPasswordReset {
+  user_id: string;
+  email: string;
+  temporary_password: string;
+}
+
 export interface TableSummary {
   id: string;
   workspace_id: string;

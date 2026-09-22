@@ -16,6 +16,7 @@ import {
   type CreatedWorkspaceInvitation,
   type PublicInvitation,
   type LocalUserCreated,
+  type TemporaryPasswordReset,
   type WorkspaceRole,
   type SupportedLocale,
 } from "./types";
@@ -158,6 +159,11 @@ export const api = {
     request<void>(`/workspaces/${workspaceId}/members/${membershipId}`, {
       method: "DELETE",
     }),
+  resetMemberPassword: (workspaceId: string, membershipId: string) =>
+    request<TemporaryPasswordReset>(
+      `/workspaces/${workspaceId}/members/${membershipId}/reset-password`,
+      { method: "POST" },
+    ),
   createLocalUser: (workspaceId: string, payload: { email: string; display_name: string; role: WorkspaceRole; preferred_locale?: SupportedLocale }) =>
     request<LocalUserCreated>(`/workspaces/${workspaceId}/users`, json("POST", payload)),
   createInvitation: (workspaceId: string, payload: { email: string; role: WorkspaceRole; verification_mode?: "LINK_ONLY" | "LINK_AND_PIN" }) =>

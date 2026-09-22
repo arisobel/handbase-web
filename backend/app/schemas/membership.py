@@ -16,6 +16,14 @@ class MemberUpdate(BaseModel):
     role: WorkspaceRole
 
 
+class TemporaryPasswordReset(BaseModel):
+    """Clear-text temporary credential returned only by the reset operation."""
+
+    user_id: uuid.UUID
+    email: str
+    temporary_password: str
+
+
 class MemberRead(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
