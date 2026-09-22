@@ -41,6 +41,7 @@ export interface AuthUser {
   display_name: string;
   preferred_locale: SupportedLocale | null;
   is_active: boolean;
+  must_change_password: boolean;
 }
 
 export interface Membership {
@@ -91,10 +92,12 @@ export interface WorkspaceInvitation {
   accepted_at: string | null;
   revoked_at: string | null;
   created_at: string | null;
+  verification_mode: "LINK_ONLY" | "LINK_AND_PIN";
 }
 
 export interface CreatedWorkspaceInvitation extends WorkspaceInvitation {
   invitation_url: string;
+  pin?: string | null;
 }
 
 export interface PublicInvitation {
@@ -104,6 +107,16 @@ export interface PublicInvitation {
   role: WorkspaceRole;
   expires_at: string;
   account_exists: boolean;
+  verification_mode: "LINK_ONLY" | "LINK_AND_PIN";
+  pin_verified: boolean;
+}
+
+export interface LocalUserCreated {
+  id: string;
+  email: string;
+  display_name: string;
+  role: WorkspaceRole;
+  temporary_password: string;
 }
 
 export interface TableSummary {

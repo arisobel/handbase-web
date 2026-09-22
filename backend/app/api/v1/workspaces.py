@@ -9,6 +9,8 @@ from backend.app.db.session import get_db
 from backend.app.models import WorkspaceMembership
 from backend.app.schemas.membership import MemberCreate, MemberRead, MemberUpdate
 from backend.app.schemas.workspace import WorkspaceCreate, WorkspaceRead, WorkspaceUpdate
+from backend.app.schemas.local_user import LocalUserCreate, LocalUserCreated
+from backend.app.core.security import generate_temporary_password
 from backend.app.services import auth_service, authz, membership_service, metadata_service
 from backend.app.services.authz import Capability
 
@@ -74,6 +76,24 @@ def add_member(
         db, workspace_id=workspace_id, email=payload.email, role=payload.role
     )
     return _member_read(membership, user)
+
+
+@router.post("/{workspace_id}/users", response_model=LocalUserCreated, status_code=status.HTTP_201_CREATED)
+def create_local_user(
+    workspace_id: uuid.UUID, payload: LocalUserCreate,
+    actor: Annotated[WorkspaceMembership, Depends(require_workspace(Capability.MANAGE_MEMBERS))],
+    db: Session = Depends(get_db),
+):
+    authz.authorize_member_role_change(actor, new_role=payload.role)
+    if auth_service.find_user_by_email(db, payload.email) is not None:
+        from backend.app.services.errors import ConflictError
+        raise ConflictError("An account already exists for this email. Add the existing user to this workspace instead.")
+    temporary_password = generate_temporary_password()
+    user = auth_service.create_local_user(db, email=payload.email, display_name=payload.display_name,
+        preferred_locale=payload.preferred_locale, temporary_password=temporary_password)
+    membership = auth_service.grant_membership(db, workspace_id=workspace_id, user_id=user.id, role=payload.role)
+    return LocalUserCreated(id=str(user.id), email=user.email, display_name=user.display_name,
+        role=membership.role, temporary_password=temporary_password)
 
 
 @router.patch("/{workspace_id}/members/{membership_id}", response_model=MemberRead)

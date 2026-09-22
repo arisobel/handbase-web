@@ -15,6 +15,7 @@ import {
   type WorkspaceInvitation,
   type CreatedWorkspaceInvitation,
   type PublicInvitation,
+  type LocalUserCreated,
   type WorkspaceRole,
   type SupportedLocale,
 } from "./types";
@@ -132,6 +133,8 @@ export const api = {
   me: () => request<Identity>("/auth/me"),
   updateProfile: (payload: { display_name?: string; preferred_locale?: SupportedLocale }) =>
     request<Identity>("/auth/me", json("PATCH", payload)),
+  changePassword: (payload: { current_password: string; new_password: string }) =>
+    request<void>("/auth/change-password", json("POST", payload)),
 
   listWorkspaces: () => request<Workspace[]>("/workspaces"),
   getWorkspace: (id: string) => request<Workspace>(`/workspaces/${id}`),
@@ -155,12 +158,16 @@ export const api = {
     request<void>(`/workspaces/${workspaceId}/members/${membershipId}`, {
       method: "DELETE",
     }),
-  createInvitation: (workspaceId: string, payload: { email: string; role: WorkspaceRole }) =>
+  createLocalUser: (workspaceId: string, payload: { email: string; display_name: string; role: WorkspaceRole; preferred_locale?: SupportedLocale }) =>
+    request<LocalUserCreated>(`/workspaces/${workspaceId}/users`, json("POST", payload)),
+  createInvitation: (workspaceId: string, payload: { email: string; role: WorkspaceRole; verification_mode?: "LINK_ONLY" | "LINK_AND_PIN" }) =>
     request<CreatedWorkspaceInvitation>(`/workspaces/${workspaceId}/invitations`, json("POST", payload)),
   listInvitations: (workspaceId: string) => request<WorkspaceInvitation[]>(`/workspaces/${workspaceId}/invitations`),
   revokeInvitation: (workspaceId: string, invitationId: string) =>
     request<void>(`/workspaces/${workspaceId}/invitations/${invitationId}`, { method: "DELETE" }),
   getInvitation: (token: string) => request<PublicInvitation>(`/invitations/${encodeURIComponent(token)}`),
+  verifyInvitationPin: (token: string, pin: string) =>
+    request<PublicInvitation>(`/invitations/${encodeURIComponent(token)}/verify-pin`, json("POST", { pin })),
   acceptInvitation: (token: string, payload: { display_name?: string; password?: string; preferred_locale?: SupportedLocale }) =>
     request<{ workspace_id: string; workspace_name: string; email: string; role: WorkspaceRole }>(
       `/invitations/${encodeURIComponent(token)}/accept`, json("POST", payload), false,

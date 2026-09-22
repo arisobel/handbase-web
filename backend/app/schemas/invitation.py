@@ -10,6 +10,7 @@ from backend.app.models.auth import WorkspaceRole
 class InvitationCreate(BaseModel):
     email: str = Field(min_length=3, max_length=320)
     role: WorkspaceRole
+    verification_mode: str = "LINK_ONLY"
 
 
 class InvitationRead(BaseModel):
@@ -22,10 +23,12 @@ class InvitationRead(BaseModel):
     accepted_at: datetime | None
     revoked_at: datetime | None
     created_at: datetime | None
+    verification_mode: str
 
 
 class InvitationCreatedRead(InvitationRead):
     invitation_url: str
+    pin: str | None = None
 
 
 class InvitationPublicRead(BaseModel):
@@ -35,6 +38,12 @@ class InvitationPublicRead(BaseModel):
     role: WorkspaceRole
     expires_at: datetime
     account_exists: bool
+    verification_mode: str
+    pin_verified: bool = False
+
+
+class InvitationPinVerify(BaseModel):
+    pin: str = Field(pattern=r"^\d{6}$")
 
 
 class InvitationAccept(BaseModel):

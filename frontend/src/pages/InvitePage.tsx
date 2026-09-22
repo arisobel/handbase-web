@@ -19,6 +19,7 @@ export default function InvitePage() {
   const [locale, setLocale] = useState<SupportedLocale>("en");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pin, setPin] = useState("");
 
   useEffect(() => {
     api.getInvitation(token).then((loaded) => {
@@ -49,6 +50,14 @@ export default function InvitePage() {
     }
   };
 
+  const verifyPin = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true); setError(null);
+    try { setInvite(await api.verifyInvitationPin(token, pin)); }
+    catch { setError(t("invitationUnavailable")); }
+    finally { setBusy(false); }
+  };
+
   return (
     <main className="shell loginShell">
       <div className="loginCard inviteCard">
@@ -60,7 +69,12 @@ export default function InvitePage() {
               <h1>{t("invitedTo", { workspace: invite.workspace_name })}</h1>
               <p><Technical>{invite.email}</Technical> · {t(`roles.${invite.role}`)}</p>
             </header>
-            {invite.account_exists && !session ? (
+            {invite.verification_mode === "LINK_AND_PIN" && !invite.pin_verified ? (
+              <form className="form" onSubmit={verifyPin}>
+                <div className="formRow"><label htmlFor="invite-pin">{t("verificationCode")}</label><input id="invite-pin" className="technical" dir="ltr" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))} /></div>
+                <button className="primary" type="submit" disabled={busy}>{t("continue")}</button>
+              </form>
+            ) : invite.account_exists && !session ? (
               <>
                 <p>{t("invitationExistingAccount")}</p>
                 <Link className="primary buttonLink" to={`/login?invite=${token}`}>{t("signIn")}</Link>

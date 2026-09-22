@@ -25,6 +25,7 @@ export default function LoginPage() {
   };
 
   if (session) {
+    if (session.user.must_change_password) return <Navigate to="/change-password" replace />;
     const from = (location.state as { from?: string } | null)?.from;
     return <Navigate to={inviteToken ? `/invite/${inviteToken}` : from && from !== "/login" ? from : "/"} replace />;
   }

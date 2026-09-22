@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from backend.app.api.deps import CurrentUser, get_optional_user, require_workspace
 from backend.app.db.session import get_db
 from backend.app.models import User, Workspace, WorkspaceInvitation, WorkspaceMembership
-from backend.app.schemas.invitation import InvitationAccept, InvitationCreate, InvitationCreatedRead, InvitationPublicRead, InvitationRead
+from backend.app.schemas.invitation import InvitationAccept, InvitationCreate, InvitationCreatedRead, InvitationPinVerify, InvitationPublicRead, InvitationRead
 from backend.app.services import auth_service, authz, invitation_service
 from backend.app.services.authz import Capability
 
@@ -25,8 +25,8 @@ def create_invitation(
     db: Session = Depends(get_db),
 ):
     authz.authorize_member_role_change(actor, new_role=payload.role)
-    invitation, token = invitation_service.create(db, workspace_id=workspace_id, email=payload.email, role=payload.role, invited_by=user)
-    return InvitationCreatedRead(**_read(invitation).model_dump(), invitation_url=f"{str(request.base_url).rstrip('/')}/invite/{token}")
+    invitation, token, pin = invitation_service.create(db, workspace_id=workspace_id, email=payload.email, role=payload.role, invited_by=user, verification_mode=payload.verification_mode)
+    return InvitationCreatedRead(**_read(invitation).model_dump(), invitation_url=f"{str(request.base_url).rstrip('/')}/invite/{token}", pin=pin)
 
 
 @router.get("/workspaces/{workspace_id}/invitations", response_model=list[InvitationRead])
@@ -60,7 +60,19 @@ def inspect_invitation(token: str, db: Session = Depends(get_db)):
     return InvitationPublicRead(
         workspace_name=workspace.name, workspace_default_locale=workspace.default_locale, email=invitation.email, role=invitation.role,
         expires_at=invitation.expires_at, account_exists=auth_service.find_user_by_email(db, invitation.email) is not None,
+        verification_mode=invitation.verification_mode, pin_verified=invitation.pin_verified_at is not None,
     )
+
+
+@router.post("/invitations/{token}/verify-pin", response_model=InvitationPublicRead)
+def verify_invitation_pin(token: str, payload: InvitationPinVerify, db: Session = Depends(get_db)):
+    invitation = invitation_service.verify_pin(db, token=token, pin=payload.pin)
+    workspace = db.get(Workspace, invitation.workspace_id)
+    assert workspace is not None
+    return InvitationPublicRead(workspace_name=workspace.name, workspace_default_locale=workspace.default_locale,
+        email=invitation.email, role=invitation.role, expires_at=invitation.expires_at,
+        account_exists=auth_service.find_user_by_email(db, invitation.email) is not None,
+        verification_mode=invitation.verification_mode, pin_verified=True)
 
 
 @router.post("/invitations/{token}/accept")

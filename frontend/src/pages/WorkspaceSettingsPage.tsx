@@ -35,6 +35,11 @@ export default function WorkspaceSettingsPage() {
   const [defaultLocale, setDefaultLocale] = useState<SupportedLocale>("en");
   const [email, setEmail] = useState("");
   const [newRole, setNewRole] = useState<WorkspaceRole>("VIEWER");
+  const [onboardingMode, setOnboardingMode] = useState<"existing" | "invite" | "local">("existing");
+  const [verificationMode, setVerificationMode] = useState<"LINK_ONLY" | "LINK_AND_PIN">("LINK_ONLY");
+  const [displayName, setDisplayName] = useState("");
+  const [localLocale, setLocalLocale] = useState<SupportedLocale>("en");
+  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -99,6 +104,15 @@ export default function WorkspaceSettingsPage() {
     setError(null);
     setNotice(null);
     try {
+      if (onboardingMode === "local") {
+        const created = await api.createLocalUser(workspaceId, { email: email.trim(), display_name: displayName.trim(), role: newRole, preferred_locale: localLocale });
+        setMembers((current) => [...(current ?? []), { id: "new", user_id: created.id, email: created.email, display_name: created.display_name, role: created.role, preferred_locale: localLocale, is_active: true, must_change_password: true }]);
+        setTemporaryPassword(created.temporary_password); setEmail(""); setDisplayName(""); setNotice(t("localUserCreated")); return;
+      }
+      if (onboardingMode === "invite") {
+        const invitation = await api.createInvitation(workspaceId, { email: email.trim(), role: newRole, verification_mode: verificationMode });
+        setInvitations((current) => [invitation, ...(current ?? [])]); setCreatedInvitation(invitation); setEmail(""); setNotice(t("invitationCreated")); return;
+      }
       const created = await api.addMember(workspaceId, {
         email: email.trim(),
         role: newRole,
@@ -110,7 +124,7 @@ export default function WorkspaceSettingsPage() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
         try {
-          const invitation = await api.createInvitation(workspaceId, { email: email.trim(), role: newRole });
+          const invitation = await api.createInvitation(workspaceId, { email: email.trim(), role: newRole, verification_mode: verificationMode });
           setInvitations((current) => [invitation, ...(current ?? [])]);
           setCreatedInvitation(invitation);
           setEmail("");
@@ -253,6 +267,7 @@ export default function WorkspaceSettingsPage() {
               <strong>{createdInvitation.email}</strong>
               <small>{t(`roles.${createdInvitation.role}`)} · {new Date(createdInvitation.expires_at).toLocaleDateString()}</small>
               <button type="button" className="secondary" onClick={() => void copyInvitation()}>{t("copyInvitationLink")}</button>
+              {createdInvitation.pin && <p>{t("verificationCode")}: <Technical>{createdInvitation.pin}</Technical></p>}
             </div>
           )}
         </section>
@@ -262,6 +277,8 @@ export default function WorkspaceSettingsPage() {
         <section id="members" className="settingsSection">
           <div className="sectionTitle"><h2>{t("members")}</h2></div>
           <form className="memberAddForm settingsPanel" onSubmit={addMember}>
+            <div className="formRow"><label htmlFor="onboarding-mode">{t("onboardingMode")}</label><select id="onboarding-mode" value={onboardingMode} onChange={(event) => setOnboardingMode(event.target.value as "existing" | "invite" | "local")}><option value="existing">{t("existingUser")}</option><option value="invite">{t("inviteUser")}</option><option value="local">{t("createUser")}</option></select></div>
+            {onboardingMode === "local" && <><div className="formRow"><label htmlFor="local-name">{t("displayName")}</label><input id="local-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required /></div><div className="formRow"><label htmlFor="local-locale">{t("personalLanguage")}</label><select id="local-locale" value={localLocale} onChange={(event) => setLocalLocale(event.target.value as SupportedLocale)}>{LOCALES.map((locale) => <option key={locale} value={locale}>{t(`locales.${locale}`)}</option>)}</select></div></>}
             <div className="formRow">
               <label htmlFor="member-email">{t("email")}</label>
               <input
@@ -273,6 +290,7 @@ export default function WorkspaceSettingsPage() {
                 onChange={(event) => setEmail(event.target.value)}
               />
             </div>
+            {onboardingMode === "invite" && <div className="formRow"><label htmlFor="invite-mode">{t("inviteSecurity")}</label><select id="invite-mode" value={verificationMode} onChange={(event) => setVerificationMode(event.target.value as "LINK_ONLY" | "LINK_AND_PIN")}><option value="LINK_ONLY">{t("linkOnly")}</option><option value="LINK_AND_PIN">{t("linkAndPin")}</option></select></div>}
             <div className="formRow">
               <label htmlFor="member-role">{t("role")}</label>
               <select
@@ -288,8 +306,9 @@ export default function WorkspaceSettingsPage() {
             <button className="primary memberAddButton" type="submit" disabled={busy}>
               {t("addMember")}
             </button>
-            <small className="memberAddHint">{t("existingUsersOnly")}</small>
+            <small className="memberAddHint">{t(`onboardingHint.${onboardingMode}`)}</small>
           </form>
+          {temporaryPassword && <div className="settingsPanel"><strong>{t("temporaryPassword")}</strong><p><Technical>{temporaryPassword}</Technical></p></div>}
 
           {members === null && !error && <Loading />}
           {members && (

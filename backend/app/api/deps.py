@@ -86,6 +86,8 @@ def authorize_workspace(
     body (creating a table, a field or a record); everything else goes through
     the dependency factories below.
     """
+    if user.must_change_password:
+        raise AuthorizationError("Password change is required before accessing the application.")
     membership = auth_service.get_membership(db, workspace_id, user.id)
     if membership is None:
         raise NotFoundError("Workspace not found.")

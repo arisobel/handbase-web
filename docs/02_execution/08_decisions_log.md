@@ -90,3 +90,7 @@
   the server's `change_structure` capability remains authoritative.
 - **DEC-026** Board/Kanban is a ViewDefinition concern, not a field type;
   a future card move changes the source grouping field.
+- **DEC-027** Flexible onboarding retains one global User and membership model:
+  local creation returns a generated password once and forces a server-enforced
+  first-login password change; PIN invitations use digest-only six-digit PINs
+  and revoke deterministically after five failures.

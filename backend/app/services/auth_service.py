@@ -105,6 +105,16 @@ def create_user(
     return user
 
 
+def create_local_user(
+    db: Session, *, email: str, display_name: str, preferred_locale: str | None, temporary_password: str
+) -> User:
+    user = create_user(db, email=email, password=temporary_password, display_name=display_name, preferred_locale=preferred_locale)
+    user.must_change_password = True
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def update_profile(
     db: Session,
     user: User,
@@ -124,6 +134,8 @@ def update_profile(
 def set_password(db: Session, user: User, password: str) -> User:
     _validate_password(password)
     user.password_hash = hash_password(password)
+    user.must_change_password = False
+    user.password_changed_at = datetime.now(UTC)
     db.commit()
     db.refresh(user)
     return user

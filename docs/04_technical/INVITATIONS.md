@@ -5,6 +5,14 @@
 Workspace invitations onboard addresses that do not yet have accounts. No email
 provider is used: an authorized OWNER or ADMIN copies the link manually.
 
+## Verification modes
+
+`LINK_ONLY` preserves the original behaviour. `LINK_AND_PIN` additionally
+requires a six-digit code before the invite page exposes account onboarding.
+Only a SHA-256 PIN digest is stored; the raw PIN is returned once at creation.
+Five incorrect PIN attempts revoke the invitation. PIN verification is persisted
+on the still-secret token invitation and acceptance enforces that state.
+
 ## Lifecycle and security
 
 `WorkspaceInvitation` stores a normalized email, workspace role, inviter and

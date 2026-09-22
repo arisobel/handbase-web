@@ -21,6 +21,7 @@ from backend.app.schemas.auth import (
     MeRead,
     MembershipRead,
     ProfileUpdate,
+    PasswordChange,
     SessionRead,
     UserRead,
 )
@@ -133,3 +134,10 @@ def update_me(payload: ProfileUpdate, user: CurrentUser, db: Session = Depends(g
         memberships=_memberships(db, updated),
         effective_locale=resolve_locale(updated.preferred_locale),
     )
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(payload: PasswordChange, user: CurrentUser, db: Session = Depends(get_db)):
+    if not auth_service.verify_password(user.password_hash, payload.current_password):
+        raise auth_service.AuthenticationError("Current password is incorrect.")
+    auth_service.set_password(db, user, payload.new_password)

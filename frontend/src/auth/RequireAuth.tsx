@@ -20,6 +20,9 @@ export default function RequireAuth({ children }: { children: React.ReactElement
     // Remember where they were headed so login can send them back.
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
+  if (session.user.must_change_password && location.pathname !== "/change-password") {
+    return <Navigate to="/change-password" replace />;
+  }
 
   return children;
 }

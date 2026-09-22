@@ -9,6 +9,7 @@ import TableRecordsPage from "./pages/TableRecordsPage";
 import TableSettingsPage from "./pages/TableSettingsPage";
 import WorkspacePage from "./pages/WorkspacePage";
 import WorkspaceSettingsPage from "./pages/WorkspaceSettingsPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 
 /** Everything except `/login` sits behind a session; the API enforces it too. */
 const guarded = (element: React.ReactElement) => <RequireAuth>{element}</RequireAuth>;
@@ -17,6 +18,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/change-password" element={guarded(<ChangePasswordPage />)} />
       <Route path="/invite/:token" element={<InvitePage />} />
       <Route path="/" element={guarded(<DashboardPage />)} />
       <Route path="/workspaces/:workspaceId" element={guarded(<WorkspacePage />)} />

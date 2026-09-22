@@ -257,6 +257,14 @@ record → list → edit → delete.
 - Migration `20260922_06` additively adds `display_field_key`. Board was not
   implemented because ViewDefinition has no API; its contract is documented.
 
+## Implemented - flexible onboarding
+
+- Existing-account addition, link-only/link+PIN invitations and administrator
+  local-user creation are available through the same User/Membership model.
+- PINs are digest-only, shown once, and revoke their invitation after five
+  failures. Local users receive a generated temporary password shown once and
+  must change it before workspace APIs permit normal access.
+
 ## Verification performed on 2026-09-18
 
 Executed, with results:

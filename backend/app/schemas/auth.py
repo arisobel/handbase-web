@@ -18,6 +18,7 @@ class UserRead(BaseModel):
     display_name: str
     preferred_locale: SupportedLocale | None
     is_active: bool
+    must_change_password: bool
 
 
 class ProfileUpdate(BaseModel):
@@ -55,3 +56,8 @@ class MeRead(BaseModel):
     user: UserRead
     memberships: list[MembershipRead]
     effective_locale: SupportedLocale
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=1024)
+    new_password: str = Field(min_length=10, max_length=1024)

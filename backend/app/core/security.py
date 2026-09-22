@@ -97,3 +97,13 @@ def generate_invitation_token() -> str:
 
 def hash_invitation_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def generate_invitation_pin() -> str:
+    """A six-digit verification factor; token security still comes from the link."""
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def generate_temporary_password() -> str:
+    """High-entropy one-time password, displayed only to the creating admin."""
+    return secrets.token_urlsafe(18)

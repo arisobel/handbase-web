@@ -36,6 +36,7 @@ See `07_progress.md` for exactly what each of these covers.
 - Self-service password reset (email delivery).
 - Optional invitation email delivery (SMTP/provider integration). Copyable
   invitation links and onboarding are implemented; no email is sent by design.
+- Invitation regeneration UI and PIN-specific throttling/audit history.
 - Filter expressions and saved views.
 - Relation follow-ups: target search/autocomplete, multi-relation, configurable
   deletion policies and explicit display-field editing for legacy tables.
